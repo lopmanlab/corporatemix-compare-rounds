@@ -80,7 +80,7 @@ df %>% filter(location == "Work") %>%
 ```
 
 ```{r}
-df %>% filter(location == "Other") %>%
+df %>% filter(location == "Community") %>%
   ggplot(aes(value, fill = round)) + geom_density(alpha = 0.2) +
   theme_bw() +
   xlab("Prop transmissability due to contact changes compared to pre-pandemic")+
