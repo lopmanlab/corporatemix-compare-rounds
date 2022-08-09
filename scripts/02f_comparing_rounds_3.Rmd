@@ -19,7 +19,7 @@ source("../scripts/00b_useful_functions.R")
 
 ```
 
-```{r recoding, echo=FALSE, include=FALSE, warning=FALSE}
+```{r load-data, echo=FALSE, include=FALSE, warning=FALSE}
 
 #  read in the files for rounds
 participant_rd1 <- readRDS("../data/df_participant_clean_rd1.RDS")  # Participant information
@@ -40,6 +40,9 @@ participant_rd4 <- readRDS("../data/df_participant_clean_rd4.RDS")  # Participan
 contact_rd4 <- readRDS("../data/df_contact_clean_rd4.RDS")          # Contact information
 # df_rd3 <- readRDS("../data/df_merged_clean_rd3.RDS")
 
+```
+
+```{r participant-files, echoFALSE, include=FALSE}
 ## select and rename vars to same format
 
 # round 1 data
@@ -145,8 +148,9 @@ participants$family_structure <- factor(participants$family_structure,
 participants$company <- factor(participants$company)
 participants$round <- factor(participants$round,
                              levels = c("One", "Two", "Three", "Four"))
+```
 
-
+```{r contact-files, echoFALSE, include=FALSE}
 # 2. contact files
 # names(contact_rd1)
 contact_rd1 <- contact_rd1 %>%
@@ -262,7 +266,7 @@ df_all <- rbind(rd1, rd2, rd3, rd4)
 df_all$round <- factor(df_all$round,
                        levels = c("One", "Two", "Three", "Four"))
 
-# rm(rd1, rd2, rd3)
+# rm(rd1, rd2, rd3, rd4)
 ```
 
 
@@ -353,12 +357,6 @@ rm(t2a)
 
 ### Table 3: Average contacts by round
 ```{r table3, include=FALSE}
-# r1_contacts <- day_rd1 %>%
-#   select("participant_id","round") %>%
-#   filter(round=="One") %>%
-#   group_by(participant_id) %>%
-#   summarise(r1_contacts = n())
-
 r1_contacts <- day_rd1 %>%
   # .[!duplicated(.$participant_id),] %>%
     rename(r1_contacts = num_contacts) %>%
@@ -392,28 +390,37 @@ df_allb$r2_contacts <- as.numeric(df_allb$r2_contacts)
 df_allb$r3_contacts <- as.numeric(df_allb$r3_contacts)
 df_allb$r4_contacts <- as.numeric(df_allb$r4_contacts)
 
+
+# all_rounds_contacts <- df_all %>%
+#   select("participant_id","round") %>%
+#   group_by(participant_id, round) %>%
+#   summarise(num_contacts = n())
+# 
+# ##### CONTINUE FROM HERE
+# # for this table, group contacts by each variable separately and join
+# 
+# df_allb <- left_join(df_all, all_rounds_contacts, 
+#                      by=c("participant_id"="participant_id", "round"="round"))
+# df_allb$num_contacts <- as.numeric(df_allb$num_contacts)
+
+
+
+
 # # for sex, drop 20 records with "Not reported"
 # df_allb <- df_allb %>%
 #   subset(participant_sex != "Not reported")
 # df_allb$participant_sex <- droplevels(df_allb$participant_sex)
 ```
 
-```{r, include=FALSE, echo=FALSE}
-# check the median contacts for day 1.
-
-```
 
 ```{r}
-## generate summary table
 list <- list(0)  ## empty list
 
 ## specify participant characteristic stratifications for cross tabs/analysis
 variables <- data.frame(var=c("participant_sex","participant_age_2", "family_structure",
-                              "contact_relation", "contact_location", 
-                              "company", "race", "hispanic"),
-                        name=c("Sex","Age Group", "Family structure", 
-                               "Relationship to contact", "Location of contact",
-                               "Company","Race","Hispanic")) %>% # "Relationship to contact"
+                              "contact_location", "company","race","hispanic"), #  "contact_relation",
+                        name=c("Sex","Age Group", "Family structure",
+                               "Location of contact", "Company","Race","Hispanic")) %>% # "Relationship to contact"
   mutate(var = as.character(var),
          name = as.character(name))
 
@@ -472,15 +479,15 @@ for (i in 1:nrow(variables)){
   # because R1 has 3 companies compared to 5 in the others, we use qpcR:::cbind.na() to bind the columns, else we get an error.
   t0<-qpcR:::cbind.na(t0, t1$med_contact, t2$med_contact, t3$med_contact, t4$med_contact) # Bind columns together
 
-  t0<- t0[,c(1,2,3,4,5,6)] # (1,2,3,4,5,6)
+  t0<- t0[,c(1,2,3,4,5,6)]
  
   t0$Total <- paste(t0$Total," (","", t0$Col,")",sep="")
-  t0 <- t0[,c(1,3,4,5,6)]
-  t0[,1]<-as.character(t0[,1])
+  t0 <- t0[,c(1,2,3,4,5,6)]
   t0[,2]<-as.character(t0[,2])
   t0[,3]<-as.character(t0[,3])
   t0[,4]<-as.character(t0[,4])
   t0[,5]<-as.character(t0[,5])
+  t0[,6]<-as.character(t0[,6])
  
   t0<-rbind(Tot, t0)
   
@@ -501,8 +508,8 @@ colnames(table_one) <- c("Total (%)", "Round 1", "Round 2", "Round 3", "Round 4"
 kable(table_one, digits = 0, align = "r") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 
-write.csv(table_one, "../output/tables/table3_average_contacts.csv")
 ```
+
 \
 \
 
@@ -628,16 +635,25 @@ box5 <- plot_grid(box5, legend, rel_widths = c(2,.4))
 
 # tiff("../output/figs/contact_distribution.tiff", units="in", width=8, height=6, res=300)
 box5
+
+rm(box1, box2, box3, box4)
 ```
+
 \
 \
 
 ```{r graphs2, warning=FALSE, echo=FALSE}
+
 contacts_location_round <- df_all %>%
   group_by(participant_id, contact_location, round) %>%   # group by id and count number of contacts
   dplyr::summarize(num_contacts = n())
 
-box6 <- ggplot(contacts_location_round, aes(x = contact_location, y = num_contacts, fill=round))
+# here, changed to df_allb from contacts_location_round above.
+box6 <- df_all %>%
+  group_by(participant_id, contact_location, round) %>%
+  dplyr::summarize(num_contacts = n()) %>%
+  ggplot(., aes(x = contact_location, y = num_contacts, fill=round))
+
 box6 <- box6 +
   geom_boxplot(width = .50, position = position_dodge(0.6), outlier.size = 0.5, outlier.shape = NA) +
   # theme_cowplot() +
@@ -662,8 +678,28 @@ box6 <- box6 +
 box6
 # tiff("../output/figs/contact_distribution_location.tiff", units="in", width=8, height=6, res=150)
 # dev.off()
+
+median_contacts_rounds <- contacts_location_round %>%
+  group_by(round, contact_location) %>%
+  summarise(
+    count = n(),
+    mean = mean(num_contacts, na.rm = TRUE),
+    sd = sd(num_contacts, na.rm = TRUE),
+    median = median(num_contacts, na.rm = TRUE),
+    # qs = quantile(num_contacts, c(0.25, 0.75)), prob = c(0.25, 0.75))
+    q1 = quantile(num_contacts, c(0.25), prob = c(0.25), na.rm = TRUE),
+    q3 = quantile(num_contacts, c(0.75), prob = c(0.75), na.rm = TRUE))
+
 ```
+
 \
+\
+
+# Median contactsat work, home and community by round
+```{r}
+median_contacts_rounds
+```
+
 \
 \
 
@@ -677,6 +713,7 @@ box6
 #   mutate(round="Two")
 
 # However, doing it the way above (temp2) produces summary results that are different from what we reported in the manuscript we published. Hence, I use the variable day_rd1$social_cont file to compute the summary statistics.
+
 temp1 <- day_rd1 %>%
   # rename(num_contacts = social_cont) %>%
   .[!duplicated(.$participant_id),] %>%
@@ -766,6 +803,7 @@ The median (IQR) contact rates for round 1, 2,  3 and 4 were
 `r summary_rounds$median[3]` (`r summary_rounds$q1[3]`, `r summary_rounds$q3[3]`), and
 `r summary_rounds$median[1]` (`r summary_rounds$q1[1]`, `r summary_rounds$q3[1]`), 
 respectively.
+
 \
 \
 
@@ -892,23 +930,23 @@ m_all
 
 ```{r, include=FALSE}
 
-tiff("../output/figs/contact_distribution_location.tiff", units="in", width=8, height=6, res=150)
+pdf("../output/figs/contact_distribution_location.pdf", units="in", width=8, height=6)
 box6
 dev.off()
 
-tiff("../output/figs/matrix_round1.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/figs/matrix_round1.tiff", units="in", width=6, height=6, res=75)
 m1_rd1
 dev.off()
 
-tiff("../output/figs/matrix_round2.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/figs/matrix_round2.tiff", units="in", width=6, height=6, res=75)
 m1_rd2
 dev.off()
 
-tiff("../output/figs/matrix_round3.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/figs/matrix_round3.tiff", units="in", width=6, height=6, res=75)
 m1_rd3
 dev.off()
 
-tiff("../output/figs/matrix_round4.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/figs/matrix_round4.tiff", units="in", width=6, height=6, res=75)
 m1_rd4
 dev.off()
 
@@ -931,13 +969,17 @@ age_labels <- c("0-9"="0-", "10-19"="10-", "20-29"="20-",
 m1_rd1_work <- make_matrix_rd1(
   rd1 %>%
     filter(contact_location=="Work"),
-  title = "Work", 
+  title = "",
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 5) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.text.y = element_text(size = 20),
-        axis.title.y = element_text(size = 25))
+        axis.title.y = element_text(size = 25)) +
+   theme(panel.background = element_rect(fill='transparent'),
+         plot.background = element_rect(fill='transparent', color=NA)) +
+  labs(title="Round 1") 
 # m1_rd1_work
 
 ## Round 2
@@ -950,7 +992,10 @@ m1_rd2_work <- make_matrix_rd2(
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
-        axis.text.y = element_blank())
+        axis.text.y = element_blank()) +
+     theme(panel.background = element_rect(fill='transparent'),
+           plot.background = element_rect(fill='transparent', color=NA)) +
+  labs(title="Round 2")
 # m1_rd2_work
 
 ## Round 3
@@ -963,7 +1008,10 @@ m1_rd3_work <- make_matrix_rd3(
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
-        axis.text.y = element_blank())
+        axis.text.y = element_blank()) +
+     theme(panel.background = element_rect(fill='transparent'),
+           plot.background = element_rect(fill='transparent', color=NA)) +
+  labs(title="Round 3")
 # m1_rd3_work
 
 # Round 4
@@ -976,7 +1024,10 @@ m1_rd4_work <- make_matrix_rd4(
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
-        axis.text.y = element_blank())
+        axis.text.y = element_blank()) +
+     theme(panel.background = element_rect(fill='transparent'),
+           plot.background = element_rect(fill='transparent', color=NA)) +
+  labs(title="Round 4")
 # m1_rd4_work
 
 
@@ -984,13 +1035,15 @@ m1_rd4_work <- make_matrix_rd4(
 m1_rd1_home <- make_matrix_rd1(
   rd1 %>%
     filter(contact_location=="Home"),
-  title = "Home", 
+  title = "",
   legendpos ="") +
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.text.y = element_text(size = 20),
-        axis.title.y = element_text(size = 25))
+        axis.title.y = element_text(size = 25)) +
+   theme(panel.background = element_rect(fill='transparent'),
+         plot.background = element_rect(fill='transparent', color=NA))
 # m1_rd1_home
 
 ## Round 2
@@ -1000,6 +1053,8 @@ m1_rd2_home <- make_matrix_rd2(
   title = "", 
   legendpos ="") +
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA)) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
@@ -1013,6 +1068,8 @@ m1_rd3_home <- make_matrix_rd3(
   title = "", 
   legendpos ="")  +
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA)) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
@@ -1025,7 +1082,9 @@ m1_rd4_home <- make_matrix_rd4(
     filter(contact_location=="Home"),
   title = "", 
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +    
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA)) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
@@ -1037,14 +1096,16 @@ m1_rd4_home <- make_matrix_rd4(
 m1_rd1_comm <- make_matrix_rd1(
   rd1 %>%
     filter(contact_location=="Community"),
-  title = "Community", 
+  title = "",
   legendpos ="")  +
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
   scale_x_discrete(labels=age_labels) +
   theme(axis.title.x = element_text(size = 25),
         axis.text.x = element_text(size = 20),
         axis.title.y = element_text(size = 25),
-        axis.text.y = element_text(size = 20))
+        axis.text.y = element_text(size = 20)) +
+   theme(panel.background = element_rect(fill='transparent'),
+         plot.background = element_rect(fill='transparent', color=NA))
 # m1_rd1_comm
 
 ## Round 2
@@ -1054,6 +1115,8 @@ m1_rd2_comm <- make_matrix_rd2(
   title = "", 
   legendpos ="") +
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA)) +
   scale_x_discrete(labels=age_labels) +
   theme(axis.title.y = element_blank(),
         axis.text.y = element_blank(),
@@ -1072,7 +1135,10 @@ m1_rd3_comm <- make_matrix_rd3(
   theme(axis.title.x = element_text(size = 25),
         axis.text.x = element_text(size = 20),
         axis.title.y = element_blank(),
-        axis.text.y = element_blank())
+        axis.text.y = element_blank()) +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA))
+  
 # m1_rd3_comm
 
 # Round 4
@@ -1081,26 +1147,35 @@ m1_rd4_comm <- make_matrix_rd4(
     filter(contact_location=="Community"),
   title = "", 
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 5) +
   scale_x_discrete(labels=age_labels) +
   theme(axis.title.x = element_text(size = 25),
         axis.text.x = element_text(size = 20),
         axis.title.y = element_blank(),
-        axis.text.y = element_blank())
+        axis.text.y = element_blank()) +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA))
+
 # m1_rd4_comm
 
 
-m_location <- plot_grid(m1_rd1_work, m1_rd2_work, m1_rd3_work, m1_rd4_work, legend_m1,
-                        m1_rd1_home, m1_rd2_home, m1_rd3_home, m1_rd4_home, NULL,
-                        m1_rd1_comm, m1_rd2_comm, m1_rd3_comm, m1_rd4_comm, NULL,
-                        nrow=3, ncol=5, align="hv", 
-                        rel_widths=c(1.4,1,1,1,.2), rel_heights=c(1,1,1.2), scale=0.95)
+m_location <- plot_grid(NULL, m1_rd1_work, m1_rd2_work, m1_rd3_work, m1_rd4_work, legend_m1,
+                        NULL, m1_rd1_home, m1_rd2_home, m1_rd3_home, m1_rd4_home, NULL,
+                        NULL, m1_rd1_comm, m1_rd2_comm, m1_rd3_comm, m1_rd4_comm, NULL,
+                        nrow=3, ncol=6, align="hv",
+                        rel_widths=c(.2, 1.2, 1, 1, 1, .2), rel_heights=c(1,1,1.2), scale=0.9,
+                        labels = c('Work','','','', '', '',
+                                   'Home', '', '', '', '','',
+                                   'Community', '', '', '', '',''),
+                        label_size=30, bg='transparent')
 
 print(m_location)
+
 ```
 
-```{r, include=FALSE, fig.width = 20, fig.height = 16}
-tiff("../output/figs/matrix_location_all.tiff", units="in", res=75)
+```{r, include=FALSE}
+pdf("../output/figs/matrix_location_all.pdf", width=24, height=18)
 m_location
 dev.off()
 ```
