@@ -48,11 +48,21 @@ contact_rd1 <- readRDS("../data/df_contact_clean_rd1.RDS") %>%
 
 participant_rd1 <-readRDS("../data/df_participant_clean_rd1.RDS") %>%
   rename(participant_id = part_id)
-df_rd1 <- readRDS("../data/df_day_clean_rd1.RDS") %>%
-  filter(diaryday=="First day")
+# participant_rd1$age_cat[participant_rd1$age_cat == "40-49"] <- "40-59"
+# participant_rd1$age[participant_rd1$participant_age == "50-59"] <- "40-59"
+participant_rd1$hispanic[participant_rd1$hispanic == "None of these"] <- "No"
+participant_rd1$comp[participant_rd1$comp == "accenture"] <- "Accenture"
+participant_rd1$comp[participant_rd1$comp == "guidehouse"] <- "Guidehouse"
+participant_rd1$comp[participant_rd1$comp == "emory"] <- "Emory 1599"
+participant_rd1$gender[participant_rd1$gender == "Prefer not to answer"] <- "Not reported"
 
-df_rd1 <- df_rd1 %>%
-  rename(participant_id = part_id) %>%
+day1_rd1 <- readRDS("../data/df_day_clean_rd1.RDS") %>%
+  filter(diaryday=="First day") %>%
+  rename(participant_id = part_id)
+
+
+df_rd1 <- day1_rd1 %>%
+  # rename(participant_id = part_id) %>%
   left_join(participant_rd1, by="participant_id") %>%
   mutate(family_structure = ifelse(hh_str=="Live alone","Alone",
                          ifelse(hh_str=="Live with parent", "Extended",
@@ -74,14 +84,15 @@ participant_rd1 <- df_rd1 %>%
          "hispanic", "education", "family_structure", "state_res", "company") %>%  
   distinct(., participant_id, .keep_all = TRUE) %>%
   mutate(round = "One")
-participant_rd1$participant_age[participant_rd1$participant_age=="40-49"] <- "40-59"
-participant_rd1$participant_age[participant_rd1$participant_age=="50-59"] <- "40-59"
 
-# participant_rd1 <- day_rd1 %>%
+
+# participant_rd1 <- day1_rd1 %>%
 #   rename(participant_id = part_id,
 #          num_contacts = social_cont) %>%
 #   select(participant_id, num_contacts, diaryday) %>%
 #   left_join(participant_rd1, by="participant_id")
+
+
 
 # round 2
 participant_rd2 <- readRDS("../data/df_participant_clean_rd2.RDS") %>%
@@ -106,11 +117,11 @@ contact_rd2 <- readRDS("../data/df_contact_clean_rd2.RDS") %>%
 #   filter(fromdayone =="Yes" | is.na(fromdayone))
 
 df_rd2 <- participant_rd2 %>%
-  select("participant_id", "participant_age_rd1", "participant_sex", "race", "hispanic",
+  select("participant_id", "participant_age_2", "participant_sex", "race", "hispanic",
          "education2", "family_structure", "state_res", "company") %>% 
   # "participant_age", "participant_age_2", "education",
   left_join(contact_rd2, by="participant_id") %>%
-  rename(participant_age = participant_age_rd1, education = education2) %>%
+  rename(participant_age = participant_age_2, education = education2) %>%
   # distinct(., participant_id, .keep_all = TRUE) %>%
   mutate(round = "Two")
 
@@ -119,6 +130,7 @@ participant_rd2 <- df_rd2 %>%
          "education", "family_structure", "state_res", "company", "round") %>%
     distinct(., participant_id, .keep_all = TRUE)
   
+
 
 #  read in the files for round 3 
 participant_rd3 <- readRDS("../data/df_participant_clean_rd3.RDS") %>%
@@ -137,16 +149,17 @@ contact_rd3 <- readRDS("../data/df_contact_clean_rd3.RDS") %>%
          participant_id = id) %>%
   arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation,
           contact_location, contact_type, round)
+participant_rd3$company[participant_rd3$company == "Intergral"] <- "Integral"
 
 
 # df_rd3 <- readRDS("../data/df_merged_rd3.RDS")%>%
 #   filter(fromdayone =="Yes" | is.na(fromdayone))
 
 df_rd3 <- participant_rd3 %>%
-  select("participant_id", "participant_age_rd1", "participant_sex", "race", "hispanic2", 
+  select("participant_id", "participant_age_2", "participant_sex", "race", "hispanic2", 
          "education2", "family_structure", "state_res", "company") %>%
   left_join(contact_rd3, by="participant_id") %>%
-  rename(participant_age = participant_age_rd1, education = education2, 
+  rename(participant_age = participant_age_2, education = education2, 
          hispanic = hispanic2) %>%
   mutate(round = "Three")
 
@@ -155,32 +168,35 @@ participant_rd3 <- df_rd3 %>%
          "education", "family_structure", "state_res", "company", "round") %>%
     distinct(., participant_id, .keep_all = TRUE)
 
+
+
 #  read in the files for round 4 
 participant_rd4 <- readRDS("../data/df_participant_clean_rd4.RDS") %>%
   rename(participant_id = id) # n=433
+participant_rd1$company[participant_rd1$company == "emory"] <- "Emory 1599"
+
          
 contact_rd4 <- readRDS("../data/df_contact_clean_rd4.RDS") %>%
   filter(fromdayone =="Yes" | is.na(fromdayone)) %>%
   select(id, contact_id, contact_age_4, contact_sex, contact_type, contact_relation2,
          contact_location2, contact_type) %>%
-  mutate(round = "Three") %>%
+  mutate(round = "Four") %>%
   rename(contact_age = contact_age_4,
          contact_location = contact_location2,
          contact_relation = contact_relation2,
          participant_id = id) %>%
   arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation,
-          contact_location, contact_type)
-
-# df_rd4 <- readRDS("../data/df_merged_rd4.RDS") %>%
-#   filter(fromdayone =="Yes" | is.na(fromdayone))
+          contact_location, contact_type, round)
 
 df_rd4 <- participant_rd4 %>%
-  select("participant_id","participant_age_rd1", "participant_sex", "race", "hispanic",
+  select("participant_id", "participant_age_2", "participant_sex", "race", "hispanic",
          "education2", "family_structure", "state_res", "company") %>%
   left_join(contact_rd4, by="participant_id") %>%
-  rename(participant_age = participant_age_rd1, education = education2) %>%
+  rename(participant_age = participant_age_2, education = education2) %>%
   # distinct(., participant_id, .keep_all = TRUE) %>%
-  mutate(round = "Four")
+  mutate(round = "Four") %>%
+  mutate(hispanic = dplyr::case_when(hispanic == "No, not of Hispanic, Latinx, or Spanish origin" ~ "No",
+                              TRUE ~ "Yes"))
 
 participant_rd4 <- df_rd4 %>%
   select("participant_id","participant_age", "participant_sex", "race", "hispanic",
@@ -202,7 +218,7 @@ participants$company[participants$company == "Intergral"] <- "Integral"
 participants$company <- as.factor(participants$company)
 
 participants$participant_age <- factor(participants$participant_age, order=TRUE,
-                                       levels = c("20-29", "30-39", "40-59", "60+"))
+                                       levels = c("20-29", "30-39", "40-49","50-59", "60+"))
 
 table(participants$participant_sex)
 participants$participant_sex[participants$participant_sex=="Prefer not to answer"] <- "Not reported"
@@ -240,7 +256,10 @@ contacts$round <- factor(contacts$round,
                              levels = c("One", "Two", "Three","Four"))
 
 # merge round dfs
-df_rounds <- rbind(df_rd1, df_rd2, df_rd3, df_rd4)
+df_all <- rbind(df_rd1, df_rd2, df_rd3, df_rd4)
+
+
+
 ```
 
 
@@ -270,14 +289,14 @@ t1 <- participants %>%
   add_overall() %>%
   bold_labels() %>%
   modify_header(label = "") %>%
-  modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**Survey round**") %>%
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Survey round**") %>%
   modify_caption("**Table 1: Baseline characteristics of participants across rounds on day 1.**")
 
 t1
 
 # save table
-# t1 <- as_tibble(t1)
-# write.csv(t1, "../output/tables/table1_participant_characteristics.csv")
+t1 <- as_tibble(t1)
+write.csv(t1, "../output/day1_only/table1_participant_characteristics.csv")
 # rm(t1)
 
 # library(table1)
@@ -315,8 +334,8 @@ t2 <- contacts %>%
 t2
 
 # save table
-# t2a <- as_tibble(t2)
-# write.csv(t2a, "../output/tables/table2_contact_characteristics.csv")
+t2 <- as_tibble(t2)
+write.csv(t2, "..//output/day1_only/table2_contact_characteristics.csv")
 # rm(t2a)
 # table1(~ contact_age + contact_sex + contact_location + contact_type | round,
 #        data=contacts,render.missing=NULL)
@@ -326,51 +345,39 @@ t2
 
 ### Table 3: Average contacts by round
 ```{r table3, include=FALSE}
-# r1_contacts <- day_rd1 %>%
-#   select("participant_id","round") %>%
-#   filter(round=="One") %>%
-#   group_by(participant_id) %>%
-#   summarise(r1_contacts = n())
+r1_contacts <- day1_rd1 %>%
+  # .[!duplicated(.$participant_id),] %>%
+    rename(r1_contacts = social_cont) %>% # ,participant_id = part_id
+  select(participant_id, r1_contacts)
 
-r1_contacts <- day_rd1 %>%
-  select("participant_id","round") %>%
-  filter(round=="One") %>%
-  group_by(participant_id, .drop = FALSE) %>%
-  summarise(r1_contacts = n())
-
-r2_contacts <- contact_rd2 %>%
+r2_contacts <- df_all %>%
   select("participant_id","round") %>%
   filter(round=="Two") %>%
-  group_by(participant_id, .drop=FALSE) %>%
+  group_by(participant_id) %>%
   summarise(r2_contacts = n())
 
-r3_contacts <- contact_rd3 %>%
+r3_contacts <- df_all %>%
   select("participant_id","round") %>%
   filter(round=="Three") %>%
   group_by(participant_id) %>%
   summarise(r3_contacts = n())
 
-r4_contacts <- contact_rd4 %>%
+r4_contacts <- df_all %>%
   select("participant_id","round") %>%
+  filter(round=="Four") %>%
   group_by(participant_id) %>%
   summarise(r4_contacts = n())
 
-r1_mean <- quantile(r1_contacts$r1_contacts, c(0.25, 0.50, 0.75)) #; d0_mean
-r2_mean <- quantile(r2_contacts$r2_contacts, c(0.25, 0.50, 0.75)) #; d1_mean
-r3_mean <- quantile(r3_contacts$r3_contacts, c(0.25, 0.50, 0.75)) #; d2_mean
-r4_mean <- quantile(r4_contacts$r4_contacts, c(0.25, 0.50, 0.75)) #; d3_mean
-
-overall_contacts <- rbind(r1_contacts, r2_contacts, r3_contacts, r4_contacts)
-
-df_roundsb <- left_join(df_rounds, r1_contacts, by=c("participant_id","round"))
-df_roundsb <- left_join(df_roundsb, r2_contacts, by="participant_id")
-df_roundsb <- left_join(df_roundsb, r3_contacts, by="participant_id")
-df_roundsb <- left_join(df_roundsb, r4_contacts, by="participant_id")
+df_allb <- left_join(df_all, r1_contacts, by="participant_id")
+df_allb <- left_join(df_allb, r2_contacts, by="participant_id")
+df_allb <- left_join(df_allb, r3_contacts, by="participant_id")
+df_allb <- left_join(df_allb, r4_contacts, by="participant_id")
 
 df_allb$r1_contacts <- as.numeric(df_allb$r1_contacts)
 df_allb$r2_contacts <- as.numeric(df_allb$r2_contacts)
 df_allb$r3_contacts <- as.numeric(df_allb$r3_contacts)
 df_allb$r4_contacts <- as.numeric(df_allb$r4_contacts)
+
 
 # all_rounds_contacts <- df_all %>%
 #   select("participant_id","round") %>%
@@ -395,26 +402,20 @@ df_allb$r4_contacts <- as.numeric(df_allb$r4_contacts)
 
 
 ```{r}
-
-contact_summary_data <- participants %>%
-  right_join(contacts, by=c("participant_id", "round"))
-
-
-## generate summary table
 list <- list(0)  ## empty list
 
 ## specify participant characteristic stratifications for cross tabs/analysis
-variables <- data.frame(var=c("company","participant_sex","participant_age", "family_structure",
-                              "race", "hispanic"), # company
-                        name=c("Company","Sex","Age group", "Family structure",
-                               "Race","Hispanic")) %>% # "Relationship to contact"
+variables <- data.frame(var=c("participant_sex","participant_age", "family_structure",
+                              "contact_location", "company","race", "hispanic"), #  "contact_relation",
+                        name=c("Sex","Age Group", "Family structure",
+                               "Location of contact", "Company","Race","Hispanic")) %>% # "Relationship to contact"
   mutate(var = as.character(var),
          name = as.character(name))
 
 # table(df_rd4b$participant_sex)
 
 for (i in 1:nrow(variables)){
-  x <- participants[,variables$var[[i]]] # participant[,variables$var[[i]]]
+  x <- df_all[,variables$var[[i]]] # participant[,variables$var[[i]]]
   variables$var[[i]]
 
 # Number and proportion of participants in each strata
@@ -424,100 +425,57 @@ for (i in 1:nrow(variables)){
   
   colnames(t0)[1:2] <- c("Total","Col") 
   Tot <- rep("",5)
-
-   # Median contacts for round 1
-  t1 <- contact_summary_data %>%
+  
+  # Median contacts for round 1
+  t1 <- df_allb %>%
     filter(round =="One") %>%
-    # droplevels(.$company) %>%
-    # distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
-    group_by(.dots = variables$var[[i]]) %>%
-    summarise(num_contacts = n()) %>%
-    do(data.frame(t(quantile(.$num_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
+    droplevels(.$company) %>%
+    distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
+    group_by(.dots = variables$var[[i]]) %>% 
+    do(data.frame(t(quantile(.$r1_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
   t1$med_contact <- as.character(paste(t1$X50.," (",t1$X25.,"-",t1$X75.,")",sep="")) # Formatting for export
   
   # Median contacts for round 2
-  t2 <- contact_summary_data %>%
+  t2 <- df_allb %>%
     filter(round == "Two") %>%
-    # distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
+    distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
     group_by(.dots = variables$var[[i]]) %>% 
-    summarise(num_contacts = n()) %>%
-    do(data.frame(t(quantile(.$num_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
+    do(data.frame(t(quantile(.$r2_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
   t2$med_contact <- as.character(paste(t2$X50.," (",t2$X25.,"-",t2$X75.,")",sep="")) # Formatting for export
   
   # Median contacts for round 3
-  t3 <- contact_summary_data %>%
+  t3 <- df_allb %>%
     filter(round == "Three") %>%
     # droplevels(.$race) %>%
-    # distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
+    distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
     group_by(.dots = variables$var[[i]]) %>% 
-    summarise(num_contacts = n()) %>%
-    do(data.frame(t(quantile(.$num_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
+    do(data.frame(t(quantile(.$r3_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
   t3$med_contact <- as.character(paste(t3$X50.," (",t3$X25.,"-",t3$X75.,")",sep="")) # Formatting for export 
   
   # Median contacts for round 4
-  t4 <- contact_summary_data %>%
+  t4 <- df_allb %>%
     filter(round == "Four") %>%
     # droplevels(.$race) %>%
-    # distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
+    distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
     group_by(.dots = variables$var[[i]]) %>% 
-    summarise(num_contacts = n()) %>%
-    do(data.frame(t(quantile(.$num_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
-  t4$med_contact <- as.character(paste(t4$X50.," (",t4$X25.,"-",t4$X75.,")",sep=""))
-  
-  # # Median contacts for round 1
-  # t1 <- df_all %>%
-  #   filter(round =="One") %>%
-  #   droplevels(.$company) %>%
-  #   group_by(participant_id, variables$var[[i]]) %>%   # group by id and count number of contacts
-  #   dplyr::summarize(num_contacts = n()) %>%
-  #   group_by(.dots = variables$var[[i]]) %>%
-  #   do(data.frame(t(quantile(.$num_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
-  # t1$med_contact <- as.character(paste(t1$X50.," (",t1$X25.,"-",t1$X75.,")",sep="")) # Formatting for export
-  # 
-  # # Median contacts for round 2
-  # t2 <- df_allb %>%
-  #   filter(round =="One") %>%
-  #   droplevels(.$company) %>%
-  #   group_by(participant_id, variables$var[[i]]) %>%   # group by id and count number of contacts
-  #   dplyr::summarize(num_contacts = n()) %>%
-  #   group_by(.dots = variables$var[[i]]) %>%
-  #   do(data.frame(t(quantile(.$num_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
-  # t2$med_contact <- as.character(paste(t2$X50.," (",t2$X25.,"-",t2$X75.,")",sep="")) # Formatting for export
-  # 
-  # # Median contacts for round 3
-  # t3 <- df_allb %>%
-  #   filter(round == "Three") %>%
-  #   # droplevels(.$race) %>%
-  #   distinct(participant_id, .keep_all = TRUE) %>% 
-  #   group_by(.dots = variables$var[[i]]) %>% 
-  #   do(data.frame(t(quantile(.$num_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
-  # t3$med_contact <- as.character(paste(t3$X50.," (",t3$X25.,"-",t3$X75.,")",sep="")) # Formatting for export 
-  # 
-  # # Median contacts for round 4
-  # t4 <- df_allb %>%
-  #   filter(round == "Four") %>%
-  #   # droplevels(.$race) %>%
-  #   distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
-  #   group_by(.dots = variables$var[[i]]) %>% 
-  #   do(data.frame(t(quantile(.$num_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
-  # t4$med_contact <- as.character(paste(t4$X50.," (",t4$X25.,"-",t4$X75.,")",sep="")) # Formatting for export
-  # #   out <- paste0("This is my output of iteration ", i, ".")  # Some output
-  # #   print(out)
-  # # }
+    do(data.frame(t(quantile(.$r4_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
+  t4$med_contact <- as.character(paste(t4$X50.," (",t4$X25.,"-",t4$X75.,")",sep="")) # Formatting for export
+  #   out <- paste0("This is my output of iteration ", i, ".")  # Some output
+  #   print(out)
+  # }
 
   # because R1 has 3 companies compared to 5 in the others, we use qpcR:::cbind.na() to bind the columns, else we get an error.
   t0<-qpcR:::cbind.na(t0, t1$med_contact, t2$med_contact, t3$med_contact, t4$med_contact) # Bind columns together
 
-  t0<- t0[,c(1,2,3,4,5,6)] # (1,2,3,4,5,6)
+  t0<- t0[,c(1,2,3,4,5,6)]
  
   t0$Total <- paste(t0$Total," (","", t0$Col,")",sep="")
   t0 <- t0[,c(1,3,4,5,6)]
-  t0[,1]<-as.character(t0[,1])
   t0[,2]<-as.character(t0[,2])
   t0[,3]<-as.character(t0[,3])
   t0[,4]<-as.character(t0[,4])
   t0[,5]<-as.character(t0[,5])
- 
+
   t0<-rbind(Tot, t0)
   
   rownames(t0)[1]<-variables$name[[i]]
@@ -537,7 +495,8 @@ colnames(table_one) <- c("Total (%)", "Round 1", "Round 2", "Round 3", "Round 4"
 kable(table_one, digits = 0, align = "r") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 
-# write.csv(table_one, "../output/tables/table3_average_contacts.csv")
+write.csv(table_one, "..//output/day1_only/SI_table_day1_only_contacts.csv")
+
 ```
 
 \
@@ -565,7 +524,10 @@ contacts_race <- df_all %>%
   group_by(participant_id, race, round) %>%   # group by id and count number of contacts
   dplyr::summarize(num_contacts = n())
 
-box_colors <-  c("#08519c","#3182bd","#6baed6","#bdd7e7") # c("#0868ac", "#43a2ca", "7bccc4", "#bae4bc" ) #c("#dfc27d", "#80cdc1", "#a6611a")
+
+
+box_colors <-  c("#08519c","#3182bd","#6baed6","#bdd7e7") 
+# c("#0868ac", "#43a2ca", "7bccc4", "#bae4bc" ) #c("#dfc27d", "#80cdc1", "#a6611a")
 
 box1 <- ggplot(contacts_age, aes(x = participant_age, y = num_contacts, fill=round))
 box1 <- box1 +
@@ -663,7 +625,7 @@ legend <- get_legend(
 
 box5 <- plot_grid(box5, legend, rel_widths = c(2,.4))
 
-# tiff("../output/figs/contact_distribution.tiff", units="in", width=8, height=6, res=300)
+# tiff("../output/day1_only/contact_distribution.tiff", units="in", width=8, height=6, res=300)
 box5
 ```
 
@@ -703,7 +665,7 @@ box6 <- box6 +
         axis.text.x = element_text(size = 16), # changed from txt_size (MK)
         axis.text.y = element_text(size= 16))
 box6
-# tiff("../output/figs/contact_distribution_location.tiff", units="in", width=8, height=6, res=150)
+# tiff("../output/day1_only/contact_distribution_location.tiff", units="in", width=8, height=6, res=150)
 # dev.off()
 
 median_contacts_rounds <- contacts_location_round %>%
@@ -737,11 +699,12 @@ median_contacts_rounds
 #   dplyr::summarize(num_contacts = n()) %>%
 #   mutate(round="Two")
 
-# However, doing it the way above (temp2) produces summary results that are different from what we reported in the manuscript we published. Hence, I use the variable day_rd1$social_cont file to compute the summary statistics.
-temp1 <- day_rd1 %>%
+# However, doing it the way above (temp2) produces summary results that are different from what we reported in the manuscript we published. Hence, I use the variable day1_rd1$social_cont file to compute the summary statistics.
+temp1 <- day1_rd1 %>%
   # rename(num_contacts = social_cont) %>%
-  .[!duplicated(.$participant_id),] %>%
-  select(participant_id, num_contacts) %>%
+  # .[!duplicated(.$participant_id),] %>%
+  select(participant_id, social_cont) %>%
+  rename(num_contacts = social_cont) %>%
   mutate(round="One")
 
 temp2 <- df_all %>%
@@ -810,7 +773,7 @@ p1 <- ggbarplot(df_contacts_round, x = "round", y = "num_contacts",
        label=TRUE,
        lab.vjust = -1.0, lab.hjust = -1.0,
        position = position_dodge(0.1))
-tiff("../output/figs/fig2_median_all_rounds.tiff", units="in", width=6, height=6, res=300)
+tiff("../output/day1_onlyfig2_median_all_rounds.tiff", units="in", width=6, height=6, res=300)
 p1
 dev.off()
 # There is a significant difference in the mean contact values between round 1 and round 2 (Kruskal-Wallis rank sum test, p=`r test_rounds_12$p.value`) and round 2 and 3 (Kruskal-Wallis rank sum test, p=`r test_rounds_23$p.value`).
@@ -953,27 +916,27 @@ m_all
 
 ```{r, include=FALSE}
 
-tiff("../output/figs/contact_distribution_location.tiff", units="in", width=8, height=6, res=150)
+tiff("../output/day1_onlycontact_distribution_location.tiff", units="in", width=8, height=6, res=150)
 box6
 dev.off()
 
-tiff("../output/figs/matrix_round1.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/day1_only/matrix_round1.tiff", units="in", width=6, height=6, res=150)
 m1_rd1
 dev.off()
 
-tiff("../output/figs/matrix_round2.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/day1_only/matrix_round2.tiff", units="in", width=6, height=6, res=150)
 m1_rd2
 dev.off()
 
-tiff("../output/figs/matrix_round3.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/day1_only/matrix_round3.tiff", units="in", width=6, height=6, res=150)
 m1_rd3
 dev.off()
 
-tiff("../output/figs/matrix_round4.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/day1_only/matrix_round4.tiff", units="in", width=6, height=6, res=150)
 m1_rd4
 dev.off()
 
-tiff("../output/figs/matrix_all_rounds.tiff", units="in", width=18, height=18, res=75)
+tiff("../output/day1_only/matrix_all_rounds.tiff", units="in", width=18, height=18, res=75)
 m_all
 dev.off()
 
@@ -1161,7 +1124,7 @@ print(m_location)
 ```
 
 ```{r, include=FALSE, fig.width = 20, fig.height = 16}
-tiff("../output/figs/matrix_location_all.tiff", units="in", res=75)
+tiff("../output/day1_only/matrix_location_all.tiff", units="in", res=75)
 m_location
 dev.off()
 ```
@@ -1488,23 +1451,23 @@ print(diff_matrix)
 
 ```{r, include=FALSE}
 
-tiff("../output/figs/matrix_difference12.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/day1_only/matrix_difference12.tiff", units="in", width=6, height=6, res=150)
 diff_matr1
 dev.off()
 
-tiff("../output/figs/matrix_difference23.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/day1_only/matrix_difference23.tiff", units="in", width=6, height=6, res=150)
 diff_matr2
 dev.off()
 
-tiff("../output/figs/matrix_difference34.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/day1_only/matrix_difference34.tiff", units="in", width=6, height=6, res=150)
 diff_matr3
 dev.off()
 
-tiff("../output/figs/matrix_difference14.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/day1_only/matrix_difference14.tiff", units="in", width=6, height=6, res=150)
 diff_matr4
 dev.off()
 
-tiff("../output/figs/matrix_difference_all.tiff", units="in", width=18, height=14, res=75)
+tiff("../output/day1_only/matrix_difference_all.tiff", units="in", width=18, height=14, res=75)
 diff_matrix
 dev.off()
 ```
