@@ -2,12 +2,12 @@
 
 ## Functions
 ## Function used to save legend of ggplot2 (allows manipulating legend)
-get_legend<-function(myggplot){
-  tmp <- ggplot_gtable(ggplot_build(myggplot))
-  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
-  legend <- tmp$grobs[[leg]]
-  return(legend)
-}
+# get_legend<-function(myggplot){
+#   tmp <- ggplot_gtable(ggplot_build(myggplot))
+#   leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+#   legend <- tmp$grobs[[leg]]
+#   return(legend)
+# }
 
 ## Function used to visualize age-specific contact mixing matrix with controls 
 ## over title, text size, mid and max points for legend and legend position
@@ -21,10 +21,10 @@ contactmatrix_viz <- function(matrix1, title, txt_size, mid, max, legendpos) {
                          midpoint = mid, limit = c(0, max)) +
     xlab("Participant age") + 
     ylab("Contact age") + 
-    labs(fill = "Key") + # "Avg \ncontact") +
+    labs(fill = "Average \ncontact") + # "Avg \ncontact") +
     theme_classic() +
-    theme(legend.title = element_text(size = 18),
-          legend.text = element_text(size = 18),
+    theme(legend.title = element_text(size = 20),
+          legend.text = element_text(size = 20),
           legend.justification = "right",
           legend.position = legendpos) +
     theme(plot.title = element_text(size = 28), 
@@ -32,7 +32,8 @@ contactmatrix_viz <- function(matrix1, title, txt_size, mid, max, legendpos) {
           axis.title.y = element_text(size=26, face="bold"),
           axis.text.x = element_text(size = 24),
           axis.text.y = element_text(size= 24)) +
-    ggtitle(title)
+    ggtitle(title) +
+    theme(plot.margin = margin(6, 0, 6, 0))
 }
 
 
@@ -81,11 +82,11 @@ diff_contactmatrix_viz <- function(matrix1, title, txt_size, mid, max, legendpos
     ## var1 is age of person, var2 is age of contact
     geom_raster(hjust = 0.5, vjust = 0.5, show.legend=T) +
     # geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 4) +
-    scale_fill_gradient2(low = "#2b83ba", mid = "#abdda4", high = "#ffffbf", 
+    scale_fill_gradient2(low = "#abdda4", mid = "#2b83ba", high = "#ffffbf", 
                          midpoint = mid, limit = c(0, max)) +
     xlab("Participant age") + 
     ylab("Contact age") + 
-    labs(fill = "Key") + # "Avg \ncontact") +
+    labs(fill = "Average \ncontact") + # "Avg \ncontact") +
     theme_classic() +
     theme(legend.title = element_text(size = 18),
           legend.text = element_text(size = 18),
