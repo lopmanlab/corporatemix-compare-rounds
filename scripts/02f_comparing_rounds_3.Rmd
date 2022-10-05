@@ -692,6 +692,34 @@ median_contacts_rounds <- contacts_location_round %>%
 
 ```
 
+```{r}
+meansd_rd1 <- day_rd1 %>%
+  summarise(mean = mean(num_contacts, na.rm = TRUE),
+            sd = sd(num_contacts, na.rm = TRUE))
+  
+meansd_r2 <- df_all %>%
+  filter(round=="Two") %>%
+  group_by(participant_id) %>%   # group by id and count number of contacts
+  dplyr::summarize(num_contacts = n()) %>%
+  summarise(mean = mean(num_contacts, na.rm = TRUE),
+            sd = sd(num_contacts, na.rm = TRUE))
+
+meansd_r3 <- df_all %>%
+  filter(round=="Three") %>%
+  group_by(participant_id) %>%   # group by id and count number of contacts
+  dplyr::summarize(num_contacts = n()) %>%
+  summarise(mean = mean(num_contacts, na.rm = TRUE),
+            sd = sd(num_contacts, na.rm = TRUE))
+
+meansd_r4 <- df_all %>%
+  filter(round=="Four") %>%
+  group_by(participant_id) %>%   # group by id and count number of contacts
+  dplyr::summarize(num_contacts = n()) %>%
+  summarise(mean = mean(num_contacts, na.rm = TRUE),
+            sd = sd(num_contacts, na.rm = TRUE))
+
+```
+
 \
 \
 
@@ -912,11 +940,10 @@ m1_rd4 <- make_matrix_rd4(
 
 
 # get legend
-legend_m1 <- get_legend(
-  m1_rd4 + 
-    guides(color = guide_legend(nrow = 1)) +
-    theme(legend.position = "right",
-          legend.justification = "left"))
+legend_m1 <- get_legend(m1_rd4 +
+                          guides(color = guide_legend(nrow = 1)) +
+                          theme(legend.position = "right",
+                                legend.justification = "left"))
 
 m_all <- plot_grid(m1_rd1, m1_rd2, legend_m1,
                    m1_rd3, m1_rd4,
@@ -930,7 +957,7 @@ m_all
 
 ```{r, include=FALSE}
 
-pdf("../output/figs/contact_distribution_location.pdf", units="in", width=8, height=6)
+pdf("../output/figs/contact_distribution_location.pdf",  width=8, height=6) #units="in",
 box6
 dev.off()
 
@@ -950,7 +977,7 @@ tiff("../output/figs/matrix_round4.tiff", units="in", width=6, height=6, res=75)
 m1_rd4
 dev.off()
 
-tiff("../output/figs/matrix_all_rounds.tiff", units="in", width=18, height=18, res=75)
+tiff("../output/figs/matrix_all_rounds.tiff", units="in", width=20, height=18, res=75)
 m_all
 dev.off()
 
@@ -1158,17 +1185,36 @@ m1_rd4_comm <- make_matrix_rd4(
         plot.background = element_rect(fill='transparent', color=NA))
 
 # m1_rd4_comm
+legend_b <- get_legend(m1_rd4_comm +
+                          guides(color = guide_legend(nrow = 1)) +
+                          theme(legend.position = "bottom",
+                                legend.justification = "right"))
+# legend_b <- get_legend(
+#   m1_rd4_comm + 
+#     guides(color = guide_legend(nrow = 1)) +
+#     theme(legend.position = "bottom")
 
-
-m_location <- plot_grid(NULL, m1_rd1_work, m1_rd2_work, m1_rd3_work, m1_rd4_work, legend_m1,
-                        NULL, m1_rd1_home, m1_rd2_home, m1_rd3_home, m1_rd4_home, NULL,
-                        NULL, m1_rd1_comm, m1_rd2_comm, m1_rd3_comm, m1_rd4_comm, NULL,
-                        nrow=3, ncol=6, align="hv",
-                        rel_widths=c(.2, 1.2, 1, 1, 1, .2), rel_heights=c(1,1,1.2), scale=0.9,
-                        labels = c('Work','','','', '', '',
-                                   'Home', '', '', '', '','',
-                                   'Community', '', '', '', '',''),
+m_location <- plot_grid(NULL, m1_rd1_work, m1_rd2_work, m1_rd3_work, m1_rd4_work,
+                        NULL, m1_rd1_home, m1_rd2_home, m1_rd3_home, m1_rd4_home, 
+                        NULL, m1_rd1_comm, m1_rd2_comm, m1_rd3_comm, m1_rd4_comm,
+                        NULL, NULL, legend_b, NULL,
+                        nrow=4, ncol=5, align="hv",
+                        rel_widths=c(.2, 1.1, 0.85, 0.85, 0.85), rel_heights=c(1,1,1.1,0.2), scale=0.9,
+                        labels = c('Work','','','', '',
+                                   'Home', '', '', '', '',
+                                   'Community', '', '', '', '',
+                                   '', '', '', '',''),
                         label_size=30, bg='transparent')
+
+# m_location <- plot_grid(NULL, m1_rd1_work, m1_rd2_work, m1_rd3_work, m1_rd4_work, legend_m1,
+#                         NULL, m1_rd1_home, m1_rd2_home, m1_rd3_home, m1_rd4_home, NULL,
+#                         NULL, m1_rd1_comm, m1_rd2_comm, m1_rd3_comm, m1_rd4_comm, NULL,
+#                         nrow=3, ncol=6, align="hv",
+#                         rel_widths=c(.2, 1.2, 1, 1, 1, .2), rel_heights=c(1,1,1.2), scale=0.9,
+#                         labels = c('Work','','','', '', '',
+#                                    'Home', '', '', '', '','',
+#                                    'Community', '', '', '', '',''),
+#                         label_size=30, bg='transparent')
 
 print(m_location)
 
@@ -1341,7 +1387,7 @@ colnames(m_rd4_w) <- col_names
 ### Difference matrices among employees only
 ```{r difference_matrix, warning=FALSE, echo=FALSE, comment = NA, fig.width = 18, fig.height = 14}
 # round 1-2
-diff1 <- m_rd2_w - m_rd1_w
+diff1 <- m_rd2 - m_rd1
 colnames(diff1) <- col_names
 rownames(diff1) <- row_names
 
@@ -1355,11 +1401,12 @@ diff_matr1 <- diff1 %>%
   filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
   ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
   geom_raster() +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 8) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 8) +
   theme_classic() +
-  scale_fill_gradient(low="white", high="blue", limits=c(-2, 4), breaks=(c(-2,0,2,4))) +
-  # scale_y_continuous(limits = c(-2, 2)) +
-  labs(fill = "Avg \ncontact") +
+  scale_fill_gradient2(low="blue", mid="white", high="purple", 
+                       limits=c(-4, 4), breaks=(c(-4,-2,0,2,4))) +
+  labs(fill = "Average \ncontact") +
   xlab("") + 
   ylab("Contact age") +
   ggtitle("A. Round 1 - 2") +
@@ -1389,10 +1436,11 @@ diff_matr2 <- diff2 %>%
   filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
   ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
   geom_raster() +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 8) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 8) +
   theme_classic() +
-  scale_fill_gradient(low="white", high="blue", limits=c(-1, 4), breaks=(c(-2,0,2,4))) +
-  # scale_y_continuous(limits = c(-2, 2)) +
+  scale_fill_gradient2(low="blue", mid="white", high="purple", 
+                       limits=c(-4, 4), breaks=(c(-4,-2,0,2,4))) +
   xlab("") + 
   ylab("") +
   ggtitle("B. Round 2 - 3") +
@@ -1422,10 +1470,11 @@ diff_matr3 <- diff3 %>%
   filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
   ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
   geom_raster() +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 8) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 8) +
   theme_classic() +
-  scale_fill_gradient(low="white", high="blue", limits=c(-2, 4), breaks=(c(-2,0,2,4))) +
-  # scale_y_continuous(limits = c(-2, 2)) +
+  scale_fill_gradient2(low="blue", mid="white", high="purple", 
+                       limits=c(-4, 4), breaks=(c(-4,-2,0,2,4))) +
   xlab("Participant age") + 
   ylab("Contact age") +
   ggtitle("C. Round 3 - 4") +
@@ -1455,13 +1504,14 @@ diff_matr4 <- diff4 %>%
   filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
   ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
   geom_raster() +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 8) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 8) +
   theme_classic() +
-  scale_fill_gradient(low="white", high="blue", limits=c(-2, 4), breaks=(c(-2,0,2,4))) +
-  # scale_y_continuous(limits = c(-2, 2)) +
+  scale_fill_gradient2(low="blue", mid="white", high="purple", 
+                       limits=c(-4, 4), breaks=(c(-4,-2,0,2,4))) +
   xlab("Participant age") + 
   ylab("") +
-  ggtitle("D. Round 1 - 4") +
+  ggtitle("D. Round 1 - 4 (Overall)") +
   theme(legend.title = element_text(size = 18),
         legend.text = element_text(size = 18),
         legend.justification = "right",
@@ -1473,14 +1523,6 @@ diff_matr4 <- diff4 %>%
         axis.text.y = element_text(size= 24))
 # diff_matr4
 
-
-# matr4 <- make_diff_matrix(
-#   diff4 %>%
-#     filter(!is.na(contact_age)), # Remove those without contact age
-#   replace(is.na(.), 0),
-#   title = "1-4",
-#   legendpos ="none")
-# matr4
 
 # get legend
 legend_mdiff <- get_legend(
