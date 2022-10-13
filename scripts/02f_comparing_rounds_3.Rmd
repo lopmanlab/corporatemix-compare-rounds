@@ -58,6 +58,9 @@ participant_rd1 <- participant_rd1 %>%
                                 ifelse(hh_str=="Spouse and children only", "Nuclear",
                                        ifelse(hh_str=="Spouse only", "Nuclear", 
                                               ifelse(hh_str=="Roommate or sibling", "Roommates", "Other")))))) %>%
+  mutate(hispanic = factor(hispanic, 
+                           levels = c("Yes", "None of these"),
+                           labels = c("Yes", "No"))) %>%
   rename(participant_id = part_id,
          participant_age = age_cat,
          participant_sex = gender,
@@ -75,37 +78,43 @@ participant_rd1$hispanic[participant_rd1$hispanic == "None of these"] <- "No"
 # round 2 data 
 names(participant_rd2)
 participant_rd2 <- participant_rd2 %>%
-  select(id, participant_sex, participant_age_2, education2, race, hispanic, family_structure, company) %>% # num_hh
+  select(id, participant_sex, participant_age_2, education2, race, hispanic, 
+         family_structure, company) %>% # num_hh
   rename(participant_id = id,
          participant_age = participant_age_2,
          education = education2) %>%
     mutate(round = "Two") %>%
-  arrange(company, participant_id, participant_age, participant_sex, education, race, hispanic, family_structure)
+  arrange(company, participant_id, participant_age, participant_sex, education, 
+          race, hispanic, family_structure)
 participant_rd2$hispanic[participant_rd2$hispanic == "None of these"] <- "No"
 participant_rd2$company[participant_rd2$company == "Emory"] <- "Emory 1599"
 
 # round 3 data 
 names(participant_rd3)
 participant_rd3 <- participant_rd3 %>%
-  select(id, participant_sex, participant_age_2, education2, race, hispanic2, family_structure, company) %>% # num_hh
+  select(id, participant_sex, participant_age_2, education2, race, hispanic, 
+         family_structure, company) %>% # num_hh
   rename(participant_id = id,
          participant_age = participant_age_2,
-         education = education2,
-         hispanic = hispanic2) %>%
+         education = education2) %>%
+         # hispanic = hispanic2) %>%
     mutate(round = "Three") %>%
-  arrange(company, participant_id, participant_age, participant_sex, education, race, hispanic, family_structure)
+  arrange(company, participant_id, participant_age, participant_sex, education, 
+          race, hispanic, family_structure)
 participant_rd3$company[participant_rd3$company == "Intergral"] <- "Integral"
 
 # round 4 data 
 names(participant_rd4)
 participant_rd4 <- participant_rd4 %>%
-  select(id, participant_sex, participant_age_2, education2, race, hispanic2, family_structure, company) %>% # num_hh
+  select(id, participant_sex, participant_age_2, education2, race, hispanic2, 
+         family_structure, company) %>% # num_hh
   rename(participant_id = id,
          participant_age = participant_age_2,
          education = education2,
          hispanic = hispanic2) %>%
     mutate(round = "Four") %>%
-  arrange(company, participant_id, participant_age, participant_age, participant_sex, education, race, hispanic, family_structure)
+  arrange(company, participant_id, participant_age, participant_sex, education, 
+          race, hispanic, family_structure)
 
 
 ## merge participant dfs
@@ -136,8 +145,8 @@ participants$education <- factor(participants$education,
 participants$race <- factor(participants$race,
                                 levels = c("Asian","Black","White","Mixed","Other"))
 
-participants$hispanic <- factor(participants$hispanic,
-                                levels = c("Yes","No"))
+# participants$hispanic <- factor(participants$hispanic,
+#                                 levels = c("Yes","No"))
 
 participants$family_structure <- factor(participants$family_structure,
                                         levels=c("Alone", "Nuclear", "Extended", 
@@ -148,7 +157,9 @@ participants$family_structure <- factor(participants$family_structure,
 participants$company <- factor(participants$company)
 participants$round <- factor(participants$round,
                              levels = c("One", "Two", "Three", "Four"))
+
 ```
+
 
 ```{r contact-files, echoFALSE, include=FALSE}
 # 2. contact files
@@ -156,18 +167,39 @@ participants$round <- factor(participants$round,
 contact_rd1 <- contact_rd1 %>%
   mutate(contact_location = ifelse(cont_home == "1", "Home", 
                                    ifelse(work == "1", "Work", "Community"))) %>%
+  
   mutate(cont_attr = ifelse(cont_attr=="conv_only", "Conversation","Physical")) %>%
-  mutate(round="One",
+  
+  # mutate(contact_duration = case_when(totaltime == "Less than 5 minutes" ~ "<5 mins",
+  #                                     totaltime == "Between 5 to 15 minutes" ~ "5-15 mins",
+  #                                     totaltime == "Between 15 minutes to 1 hour" ~ "15 mins-1 hr",
+  #                                     totaltime == "Between 1 hour to 4 hours" ~ "1-4 hrs",
+  #                                     totaltime == "More than 4 hours" ~ "4+ hrs"),
+  #        factor(contact_duration, levels = c("<5 mins", "5-15 mins", "15 mins-1 hr", 
+  #                                            "1-4 hrs", "4+ hrs"))) %>%
+ 
+   mutate(round="One",
          contact_relation=NA) %>%
+  
+  group_by(part_id) %>% 
+  
+  mutate(contact_name2 = 1:n(),
+         contact_id = paste(part_id, contact_name2, sep="_")) %>%
+  
+  ungroup() %>%
+  
   rename(participant_id = part_id,
-         contact_id = cont_id,
+         # contact_id = cont_id,
          fromdayone = contact_fromdayone,
          contact_sex = contact_gender,
          contact_type = cont_attr) %>%
+  
   select(participant_id, contact_id, contact_age, contact_sex, contact_relation,
-         contact_location, contact_type, round) %>%
+         contact_type, contact_location, contact_duration, round) %>%
+  
   arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation,
           contact_location, contact_type, round) # contact_relation2,
+
 contact_rd1$contact_sex[contact_rd1$contact_sex == "I don't know"] <- "Not reported"
 
 day_rd1 <- day_rd1 %>%
@@ -180,7 +212,7 @@ day_rd1 <- day_rd1 %>%
 # names(contact_rd2)
 contact_rd2 <- contact_rd2 %>%
   select(id, contact_id, contact_age_4, contact_sex, contact_relation2, 
-         contact_type, contact_location2) %>%
+         contact_type, contact_location2, contact_duration) %>%
   mutate(round="Two") %>%
     mutate(contact_location2 = ifelse(contact_location2 == "Home", "Home", 
                                    ifelse(contact_location2 == "Work", "Work", "Community"))) %>%
@@ -189,7 +221,7 @@ contact_rd2 <- contact_rd2 %>%
          contact_location = contact_location2,
          contact_relation = contact_relation2) %>%
   arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation, 
-          contact_location, contact_type, round)
+          contact_type, contact_location, contact_duration, round)
 
 temp_contacts_rd2 <- contact_rd2 %>%
 group_by(participant_id) %>%   # group by id and count number of contacts
@@ -199,7 +231,7 @@ group_by(participant_id) %>%   # group by id and count number of contacts
 # names(contact_rd3)
 contact_rd3 <- contact_rd3 %>%
   select(id, contact_id, contact_age_4, contact_sex, contact_type, contact_relation2,
-         contact_location2, contact_type) %>%
+         contact_location2, contact_type, contact_duration) %>%
   mutate(round="Three") %>%
   mutate(contact_location2 = ifelse(contact_location2 == "Home", "Home", 
                                     ifelse(contact_location2 == "Work", "Work", "Community"))) %>%
@@ -208,13 +240,13 @@ contact_rd3 <- contact_rd3 %>%
          contact_location = contact_location2,
          contact_relation = contact_relation2) %>%
   arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation, 
-          contact_location, contact_type, round)
+          contact_type, contact_location, contact_duration, round)
 
 # round 4
 # names(contact_rd4)
 contact_rd4 <- contact_rd4 %>%
   select(id, contact_id, contact_age_4, contact_sex, contact_type, contact_relation2,
-         contact_location2) %>%
+         contact_location2, contact_duration) %>%
   mutate(round="Four") %>%
   mutate(contact_location2 = ifelse(contact_location2 == "Home", "Home", 
                                     ifelse(contact_location2 == "Work", "Work", "Community"))) %>%
@@ -223,7 +255,7 @@ contact_rd4 <- contact_rd4 %>%
          contact_location = contact_location2,
          contact_relation = contact_relation2) %>%
   arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation, 
-          contact_location, contact_type, round)
+          contact_type, contact_location, contact_duration, round)
 
 contacts <- rbind(contact_rd1, contact_rd2, contact_rd3, contact_rd4)
 contacts$round <- factor(contacts$round,
@@ -235,7 +267,7 @@ vars1 <- c("participant_id","participant_sex","participant_age",
            "participant_age_2","education","race","hispanic",
            "family_structure", "contact_relation", "company", "round", 
            "contact_id", "contact_age", "contact_sex", 
-           "contact_location", "contact_type")
+           "contact_location", "contact_duration", "contact_type")
 
 rd1 <- participants %>%
   filter(round=="One") %>%
@@ -266,9 +298,14 @@ df_all <- rbind(rd1, rd2, rd3, rd4)
 df_all$round <- factor(df_all$round,
                        levels = c("One", "Two", "Three", "Four"))
 
-# rm(rd1, rd2, rd3, rd4)
+
 ```
 
+```{r}
+# rm(participant_rd1, participant_rd2, participant_rd3, participant_rd4)
+# rm(contact_rd1, contact_rd2, contact_rd3, contact_rd4)
+# rm(rd1, rd2, rd3, rd4)
+```
 
 ```{r variables, include=FALSE, echo=FALSE}
 vars2 <- c("company", "participant_sex", "participant_age", "education",
@@ -326,14 +363,18 @@ rm(t1a)
 
 label(contacts$contact_age) <- "Age of contact"
 label(contacts$contact_sex) <- "Sex of contact"
-label(contacts$contact_location) <- "Location of contact"
 label(contacts$contact_type) <- "Type of contact"
+label(contacts$contact_location) <- "Location of contact"
+label(contacts$contact_duration) <- "Duration of contact"
 # label(contacts$contact_relation2) <- "Relationship to contact"
 
+contacts$contact_duration <- factor(contacts$contact_duration,
+                                    levels = c("<5 mins", "5-15 mins", "15 mins-1 hr", 
+                                             "1-4 hrs", "4+ hrs"))
 
 t2 <- contacts %>%
-  select(contact_age, contact_sex, contact_location, 
-         contact_type, round) %>%
+  select(contact_age, contact_sex, contact_type, contact_location, 
+         contact_duration, round) %>%
   tbl_summary(by=round, 
               percent="column",
               digits = all_categorical() ~ 0,
@@ -354,6 +395,17 @@ rm(t2a)
 ```
 \
 \
+
+```{r, echo=FALSE}
+# save data that will be used shared in zenodo
+
+# merge contact & participant data
+df_all_merged <- left_join(participants, contacts,
+                     by=c("participant_id", "round"))
+
+write_rds(df_all_merged, "/Users/mck/Library/CloudStorage/OneDrive-EmoryUniversity/4.Data and Analysis/CorporateMix/2.Contact data/zenodo-datashare/data/raw/df_all_merged.RDS")
+
+```
 
 ### Table 3: Average contacts by round
 ```{r table3, include=FALSE}
@@ -664,7 +716,7 @@ box6 <- box6 +
   # xlab("Age group") + 
   # ylab("Number of contacts") + 
   labs(fill="Round",
-       x = "Location",
+       x = "Setting", #changed from Location to setting
        y = "Number of contacts" ) +
   theme(legend.title = element_text(size=14),
         legend.text = element_text(size = 10),
