@@ -145,8 +145,27 @@ participants$education <- factor(participants$education,
 participants$race <- factor(participants$race,
                                 levels = c("Asian","Black","White","Mixed","Other"))
 
-# participants$hispanic <- factor(participants$hispanic,
-#                                 levels = c("Yes","No"))
+# new categories of Hispanic as suggested by CDC reviewer
+table(participants$race, participants$hispanic)
+participants$racehispanic <- "Hispanic"
+participants <- participants %>%
+  mutate(racehispanic = case_when(hispanic == "No" & race == "Asian" ~ "Asian, Non-Hispanic",
+                                  hispanic == "No" & race == "Black" ~ "Black, Non-Hispanic",
+                                  hispanic == "No" & race == "White" ~ "White, Non-Hispanic",
+                                  hispanic == "No" & race == "Mixed" ~ "Mixed, Non-Hispanic",
+                                  hispanic == "No" & race == "Mixed" ~ "Other, Non-Hispanic",
+                                  TRUE ~ racehispanic),
+         racehispanic = factor(racehispanic, 
+                               levels = c("Hispanic", 
+                                          "Asian, Non-Hispanic",
+                                          "Black, Non-Hispanic", 
+                                          "White, Non-Hispanic",
+                                          "Mixed, Non-Hispanic"),
+                               levels = c("Hispanic", 
+                                          "Asian, NH",
+                                          "Black, NH", 
+                                          "White, NH",
+                                          "Mixed, NH")))
 
 participants$family_structure <- factor(participants$family_structure,
                                         levels=c("Alone", "Nuclear", "Extended", 
