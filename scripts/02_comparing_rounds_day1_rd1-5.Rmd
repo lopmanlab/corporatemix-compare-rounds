@@ -19,119 +19,239 @@ source("../scripts/00b_useful_functions.R")
 
 ```
 
-```{r load-data, echo=FALSE, include=FALSE, warning=FALSE}
+```{r recoding, echo=FALSE, include=FALSE, warning=FALSE}
 
-#  read in the files for rounds
-participant_rd1 <- readRDS("../data/df_participant_clean_rd1.RDS")  # Participant information
-contact_rd1 <- readRDS("../data/df_contact_clean_rd1.RDS")
-day_rd1 <- readRDS("../data/df_day_clean_rd1.RDS")           # Metadata on participant's day
+# #  read in the files for rounds
+# participant_var_names <- c("id", "participant_age", "participant_age_2", "participant_age_rd1",
+#                            "participant_sex", "race", "hispanic", 
+#                            "education", "education2", "family_structure", 
+#                            "state_res", "company")
+# 
 
-participant_rd2 <- readRDS("../data/df_participant_clean_rd2.RDS")  # Participant information
-contact_rd2 <- readRDS("../data/df_contact_clean_rd2.RDS")          # Contact information
-df_rd2 <- readRDS("../data/df_merged_rd2.RDS")
+# Round 1
+contact_rd1 <- readRDS("../data/df_contact_clean_rd1.RDS") %>%
+  filter(contact_fromdayone =="Yes" | is.na(contact_fromdayone)) %>%
+  mutate(contact_location = ifelse(cont_home == "1", "Home",
+                                   ifelse(work == "1", "Work", "Community"))) %>%
+  mutate(cont_attr = ifelse(cont_attr == "conv_only", "Conversation", "Physical"),
+         contact_relation = NA, 
+         contact_gender = case_when(contact_gender == "I don't know" ~ "Not reported"),
+         round = "One") %>%
+  select(part_id, cont_id, contact_age, contact_gender, contact_relation,
+         contact_location, cont_attr, round) %>%
+    rename(contact_sex = contact_gender,
+           contact_id = cont_id, 
+           participant_id = part_id,
+           contact_type = cont_attr) %>%
+  arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation,
+          contact_location, contact_type)
 
-#  read in the files for round 3 
-participant_rd3 <- readRDS("../data/df_participant_clean_rd3.RDS")  # Participant information
-contact_rd3 <- readRDS("../data/df_contact_clean_rd3.RDS")          # Contact information
-# df_rd3 <- readRDS("../data/df_merged_clean_rd3.RDS")
+participant_rd1 <-readRDS("../data/df_participant_clean_rd1.RDS") %>%
+  rename(participant_id = part_id)
+# participant_rd1$age_cat[participant_rd1$age_cat == "40-49"] <- "40-59"
+# participant_rd1$age[participant_rd1$participant_age == "50-59"] <- "40-59"
+participant_rd1$hispanic[participant_rd1$hispanic == "None of these"] <- "No"
+participant_rd1$comp[participant_rd1$comp == "accenture"] <- "Accenture"
+participant_rd1$comp[participant_rd1$comp == "guidehouse"] <- "Guidehouse"
+participant_rd1$comp[participant_rd1$comp == "emory"] <- "Emory 1599"
+participant_rd1$gender[participant_rd1$gender == "Prefer not to answer"] <- "Not reported"
 
-#  read in the files for round 4 
-participant_rd4 <- readRDS("../data/df_participant_clean_rd4.RDS")  # Participant information
-contact_rd4 <- readRDS("../data/df_contact_clean_rd4.RDS")          # Contact information
-# df_rd3 <- readRDS("../data/df_merged_clean_rd3.RDS")
+day1_rd1 <- readRDS("../data/df_day_clean_rd1.RDS") %>%
+  filter(diaryday=="First day") %>%
+  rename(participant_id = part_id)
 
-```
 
-```{r participant-files, echo=FALSE, include=FALSE}
-## select and rename vars to same format
-
-# round 1 data
-names(participant_rd1)
-participant_rd1 <- participant_rd1 %>%
-  select(part_id, gender, age_cat, edu, race, hispanic, hh_str, comp) %>%
-  mutate(edu = ifelse(edu=="Bachelor's degree in college (4-year)" | 
-                        edu=="Doctoral degree or Professional degree (PhD, JD, MD)" | 
-                        edu=="Master's degree", "Bachelors or higher", 
-                      "Less than Bachelors")) %>%
-  mutate(hh_str = ifelse(hh_str=="Live alone","Alone",
+df_rd1 <- day1_rd1 %>%
+  # rename(participant_id = part_id) %>%
+  left_join(participant_rd1, by="participant_id") %>%
+  mutate(family_structure = ifelse(hh_str=="Live alone","Alone",
                          ifelse(hh_str=="Live with parent", "Extended",
                                 ifelse(hh_str=="Spouse and children only", "Nuclear",
-                                       ifelse(hh_str=="Spouse only", "Nuclear", 
-                                              ifelse(hh_str=="Roommate or sibling", "Roommates", "Other")))))) %>%
-  mutate(hispanic = factor(hispanic, 
-                           levels = c("Yes", "None of these"),
-                           labels = c("Yes", "No"))) %>%
-  rename(participant_id = part_id,
-         participant_age = age_cat,
-         participant_sex = gender,
-         education = edu,
-         family_structure = hh_str,
-         company = comp) %>%
-  mutate(round = "One") %>%
-  arrange(company, participant_id, participant_age, participant_sex, education, race, hispanic, family_structure)
-participant_rd1$participant_sex[participant_rd1$participant_sex == "I don't know"] <- "Not reported"
-participant_rd1$company[participant_rd1$company == "accenture"] <- "Accenture"
-participant_rd1$company[participant_rd1$company == "emory"] <- "Emory 1599"
-participant_rd1$company[participant_rd1$company == "guidehouse"] <- "Guidehouse"
-participant_rd1$hispanic[participant_rd1$hispanic == "None of these"] <- "No"
+                                       ifelse(hh_str=="Spouse only", "Nuclear",
+                                              ifelse(hh_str=="Roommate or sibling", "Roommates", 
+                                                     "Other")))))) %>%
+  left_join(contact_rd1, by="participant_id") %>%
+  select("participant_id", "gender", "age_cat", "edu", 
+         "race", "hispanic", "state_res2", "comp","contact_id", 
+         "contact_age", "contact_sex", "family_structure",
+         "contact_relation","contact_location","contact_type", "round") %>%
+  rename(participant_sex=gender,
+         participant_age=age_cat, education=edu, state_res=state_res2, 
+         company=comp) #%>% mutate(round = "One")
 
-# round 2 data 
-names(participant_rd2)
-participant_rd2 <- participant_rd2 %>%
-  select(id, participant_sex, participant_age_2, education2, race, hispanic, 
-         family_structure, company) %>% # num_hh
-  rename(participant_id = id,
-         participant_age = participant_age_2,
-         education = education2) %>%
-    mutate(round = "Two") %>%
-  arrange(company, participant_id, participant_age, participant_sex, education, 
-          race, hispanic, family_structure)
-participant_rd2$hispanic[participant_rd2$hispanic == "None of these"] <- "No"
-participant_rd2$company[participant_rd2$company == "Emory"] <- "Emory 1599"
+participant_rd1 <- df_rd1 %>%
+  select("participant_id", "participant_age", "participant_sex", "race", 
+         "hispanic", "education", "family_structure", "state_res", "company") %>%  
+  distinct(., participant_id, .keep_all = TRUE) %>%
+  mutate(round = "One")
 
-# round 3 data 
-names(participant_rd3)
-participant_rd3 <- participant_rd3 %>%
-  select(id, participant_sex, participant_age_2, education2, race, hispanic, 
-         family_structure, company) %>% # num_hh
-  rename(participant_id = id,
-         participant_age = participant_age_2,
-         education = education2) %>%
-         # hispanic = hispanic2) %>%
-    mutate(round = "Three") %>%
-  arrange(company, participant_id, participant_age, participant_sex, education, 
-          race, hispanic, family_structure)
+
+# participant_rd1 <- day1_rd1 %>%
+#   rename(participant_id = part_id,
+#          num_contacts = social_cont) %>%
+#   select(participant_id, num_contacts, diaryday) %>%
+#   left_join(participant_rd1, by="participant_id")
+
+
+
+# round 2
+participant_rd2 <- readRDS("../data/df_participant_clean_rd2.RDS") %>%
+  rename(participant_id = id) # Participant information
+         
+contact_rd2 <- readRDS("../data/df_contact_clean_rd2.RDS") %>%
+  filter(fromdayone =="Yes" | is.na(fromdayone)) %>%
+  select(id, contact_id, contact_age_4, contact_sex, contact_relation2,
+         contact_type, contact_location2) %>%
+  # mutate(round="Two") %>%
+    mutate(contact_location2 = ifelse(contact_location2 == "Home", "Home", 
+                                   ifelse(contact_location2 == "Work", "Work", "Community")),
+           round = "Two") %>%
+  rename(contact_age = contact_age_4,
+         contact_relation = contact_relation2,
+         contact_location = contact_location2,
+         participant_id = id) %>%
+  arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation,
+          contact_location, contact_type, round) 
+
+# df_rd2 <- readRDS("../data/df_merged_rd2.RDS") %>%
+#   filter(fromdayone =="Yes" | is.na(fromdayone))
+
+df_rd2 <- participant_rd2 %>%
+  select("participant_id", "participant_age_2", "participant_sex", "race", "hispanic",
+         "education2", "family_structure", "state_res", "company") %>% 
+  # "participant_age", "participant_age_2", "education",
+  left_join(contact_rd2, by="participant_id") %>%
+  rename(participant_age = participant_age_2, education = education2) %>%
+  # distinct(., participant_id, .keep_all = TRUE) %>%
+  mutate(round = "Two")
+
+participant_rd2 <- df_rd2 %>%
+  select("participant_id","participant_age", "participant_sex", "race", "hispanic",
+         "education", "family_structure", "state_res", "company", "round") %>%
+    distinct(., participant_id, .keep_all = TRUE)
+  
+
+
+#  read in the files for round 3 
+participant_rd3 <- readRDS("../data/df_participant_clean_rd3.RDS") %>%
+  rename(participant_id = id)# n=376
+
+contact_rd3 <- readRDS("../data/df_contact_clean_rd3.RDS") %>%
+  filter(fromdayone =="Yes" | is.na(fromdayone)) %>%
+  select(id, contact_id, contact_age_4, contact_sex, contact_type, contact_relation2,
+         contact_location2, contact_type) %>%
+  mutate(round="Three") %>%
+  # mutate(contact_location2 = ifelse(contact_location2 == "Home", "Home", 
+  #                                   ifelse(contact_location2 == "Work", "Work", "Community"))) #%>%
+  rename(contact_age = contact_age_4,
+         contact_location = contact_location2,
+         contact_relation = contact_relation2,
+         participant_id = id) %>%
+  arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation,
+          contact_location, contact_type, round)
 participant_rd3$company[participant_rd3$company == "Intergral"] <- "Integral"
 
-# round 4 data 
-names(participant_rd4)
-participant_rd4 <- participant_rd4 %>%
-  select(id, participant_sex, participant_age_2, education2, race, hispanic2, 
-         family_structure, company) %>% # num_hh
-  rename(participant_id = id,
-         participant_age = participant_age_2,
-         education = education2,
-         hispanic = hispanic2) %>%
-    mutate(round = "Four") %>%
-  arrange(company, participant_id, participant_age, participant_sex, education, 
-          race, hispanic, family_structure)
 
+# df_rd3 <- readRDS("../data/df_merged_rd3.RDS")%>%
+#   filter(fromdayone =="Yes" | is.na(fromdayone))
+
+df_rd3 <- participant_rd3 %>%
+  select("participant_id", "participant_age_2", "participant_sex", "race", "hispanic", 
+         "education2", "family_structure", "state_res", "company") %>%
+  left_join(contact_rd3, by="participant_id") %>%
+  rename(participant_age = participant_age_2, education = education2) %>%
+  mutate(round = "Three")
+
+participant_rd3 <- df_rd3 %>%
+  select("participant_id","participant_age", "participant_sex", "race", "hispanic",
+         "education", "family_structure", "state_res", "company", "round") %>%
+    distinct(., participant_id, .keep_all = TRUE)
+
+
+
+#  read in the files for round 4 
+participant_rd4 <- readRDS("../data/df_participant_clean_rd4.RDS") %>%
+  rename(participant_id = id) # n=433
+participant_rd1$company[participant_rd1$company == "emory"] <- "Emory 1599"
+
+         
+contact_rd4 <- readRDS("../data/df_contact_clean_rd4.RDS") %>%
+  filter(fromdayone =="Yes" | is.na(fromdayone)) %>%
+  select(id, contact_id, contact_age_4, contact_sex, contact_type, contact_relation2,
+         contact_location2, contact_type) %>%
+  mutate(round = "Four") %>%
+  rename(contact_age = contact_age_4,
+         contact_location = contact_location2,
+         contact_relation = contact_relation2,
+         participant_id = id) %>%
+  arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation,
+          contact_location, contact_type, round)
+
+df_rd4 <- participant_rd4 %>%
+  select("participant_id", "participant_age_2", "participant_sex", "race", "hispanic",
+         "education2", "family_structure", "state_res", "company") %>%
+  left_join(contact_rd4, by="participant_id") %>%
+  rename(participant_age = participant_age_2, education = education2) %>%
+  # distinct(., participant_id, .keep_all = TRUE) %>%
+  mutate(round = "Four") %>%
+  mutate(hispanic = dplyr::case_when(hispanic == "No, not of Hispanic, Latinx, or Spanish origin" ~ "No",
+                              TRUE ~ "Yes"))
+
+participant_rd4 <- df_rd4 %>%
+  select("participant_id","participant_age", "participant_sex", "race", "hispanic",
+         "education", "family_structure", "state_res", "company", "round") %>%
+    distinct(., participant_id, .keep_all = TRUE)
+
+
+#  read in the files for round 5
+participant_rd5 <- readRDS("../data/df_participant_clean_rd5.RDS") %>%
+  rename(participant_id = id) # n=312
+table(participant_rd5$participant_sex)
+         
+contact_rd5 <- readRDS("../data/df_contact_clean_rd5.RDS") %>%
+  filter(fromdayone =="Yes" | is.na(fromdayone)) %>%
+  select(id, contact_id, contact_age_4, contact_sex, contact_type, contact_relation2,
+         contact_location2, contact_type) %>%
+  mutate(round = "Five") %>%
+  rename(contact_age = contact_age_4,
+         contact_location = contact_location2,
+         contact_relation = contact_relation2,
+         participant_id = id) %>%
+  arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation,
+          contact_location, contact_type, round)
+
+df_rd5 <- participant_rd5 %>%
+  select("participant_id", "participant_age", "participant_sex", "race", "hispanic",
+         "education2", "family_structure", "state_res", "company") %>%
+  left_join(contact_rd5, by="participant_id") %>%
+  rename(education = education2) %>%
+  # distinct(., participant_id, .keep_all = TRUE) %>%
+  mutate(round = "Five") %>%
+  mutate(hispanic = dplyr::case_when(hispanic == "No, not of Hispanic, Latinx, or Spanish origin" ~ "No",
+                              TRUE ~ "Yes"))
+
+participant_rd5 <- df_rd5 %>%
+  select("participant_id","participant_age", "participant_sex", "race", "hispanic",
+         "education", "family_structure", "state_res", "company", "round") %>%
+  
+    distinct(., participant_id, .keep_all = TRUE)
 
 ## merge participant dfs
-participants <- rbind(participant_rd1, participant_rd2, participant_rd3, participant_rd4)
-# rm(participant_rd1, participant_rd2)
+participants <- rbind(participant_rd1, participant_rd2, participant_rd3, 
+                      participant_rd4, participant_rd5)
 
 ## factorize
-participants$round <- as.factor(participants$round)
+# company
+participants$company[participants$company == "accenture"] <- "Accenture"
+participants$company[participants$company == "guidehouse"] <- "Guidehouse"
+participants$company[participants$company == "emory"] <- "Emory 1599"
+participants$company[participants$company == "Emory"] <- "Emory 1599"
+participants$company[participants$company == "Intergral"] <- "Integral"
+# participants$company <- droplevels(participants$company)
+participants$company <- as.factor(participants$company)
 
-participants$participant_age_2 <- participants$participant_age
-participants$participant_age_2 <- factor(participants$participant_age_2, order=TRUE,
-                                       levels = c("20-29", "30-39", "40-49", "50-59", "60+"))
-
-participants$participant_age[participants$participant_age=="40-49"] <- "40-59"
-participants$participant_age[participants$participant_age=="50-59"] <- "40-59"
 participants$participant_age <- factor(participants$participant_age, order=TRUE,
-                                       levels = c("20-29", "30-39", "40-59", "60+"))
+                                       levels = c("20-29", "30-39", "40-49","50-59", "60+"))
 
 table(participants$participant_sex)
 participants$participant_sex[participants$participant_sex=="Prefer not to answer"] <- "Not reported"
@@ -145,8 +265,14 @@ participants$education <- factor(participants$education,
 participants$race <- factor(participants$race,
                                 levels = c("Asian","Black","White","Mixed","Other"))
 
-# new categories of Hispanic as suggested by CDC reviewer
-table(participants$race, participants$hispanic)
+participants <- participants %>%
+  mutate(hispanic = dplyr::case_when(hispanic == "No, not of Hispanic, Latinx, or Spanish origin" ~ "No",
+                              hispanic == "No" ~ "No",
+                              hispanic == "None of these" ~ "No",
+                              TRUE ~ "Yes"))
+participants$hispanic <- factor(participants$hispanic,
+                                levels = c("Yes","No"))
+
 participants$racehispanic <- "NA"
 participants <- participants %>%
   mutate(racehispanic = case_when(hispanic == "No" & race == "Asian" ~ "Asian, Non-Hispanic",
@@ -176,166 +302,29 @@ participants$family_structure <- factor(participants$family_structure,
                                         labels=c("Live alone", "Nuclear", "Extended", 
                                                  "With roommates", "Other"))
 
-participants$company <- factor(participants$company)
 participants$round <- factor(participants$round,
-                             levels = c("One", "Two", "Three", "Four"))
-
-```
+                             levels = c("One", "Two", "Three", "Four", "Five"))
 
 
-```{r contact-files, echoFALSE, include=FALSE}
-# 2. contact files
-# names(contact_rd1)
-contact_rd1 <- contact_rd1 %>%
-  mutate(contact_location = ifelse(cont_home == "1", "Home", 
-                                   ifelse(work == "1", "Work", "Community"))) %>%
-  
-  mutate(cont_attr = ifelse(cont_attr=="conv_only", "Conversation","Physical")) %>%
-  
-  # mutate(contact_duration = case_when(totaltime == "Less than 5 minutes" ~ "<5 mins",
-  #                                     totaltime == "Between 5 to 15 minutes" ~ "5-15 mins",
-  #                                     totaltime == "Between 15 minutes to 1 hour" ~ "15 mins-1 hr",
-  #                                     totaltime == "Between 1 hour to 4 hours" ~ "1-4 hrs",
-  #                                     totaltime == "More than 4 hours" ~ "4+ hrs"),
-  #        factor(contact_duration, levels = c("<5 mins", "5-15 mins", "15 mins-1 hr", 
-  #                                            "1-4 hrs", "4+ hrs"))) %>%
- 
-   mutate(round="One",
-         contact_relation=NA) %>%
-
-  dplyr::group_by(part_id) %>% 
-  mutate(contact_name2 = 1:n(),
-         contact_id = paste(part_id, contact_name2, sep="_")) %>%
-  
-  ungroup() %>%
-  
-  rename(participant_id = part_id,
-         # contact_id = cont_id,
-         fromdayone = contact_fromdayone,
-         contact_sex = contact_gender,
-         contact_type = cont_attr) %>%
-  
-  select(participant_id, contact_id, contact_age, contact_sex, contact_relation,
-         contact_type, contact_location, contact_duration, round) %>%
-  
-  arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation,
-          contact_location, contact_type, round) # contact_relation2,
-
-contact_rd1$contact_sex[contact_rd1$contact_sex == "I don't know"] <- "Not reported"
-
-day_rd1 <- day_rd1 %>%
-  rename(participant_id = part_id,
-         num_contacts = social_cont) %>%
-  select(participant_id, num_contacts) %>%
-  left_join(participant_rd1, by="participant_id")
-
-## 
-# names(contact_rd2)
-contact_rd2 <- contact_rd2 %>%
-  select(id, contact_id, contact_age_4, contact_sex, contact_relation2, 
-         contact_type, contact_location2, contact_duration) %>%
-  mutate(round="Two") %>%
-    mutate(contact_location2 = ifelse(contact_location2 == "Home", "Home", 
-                                   ifelse(contact_location2 == "Work", "Work", "Community"))) %>%
-  rename(participant_id = id,
-         contact_age = contact_age_4,
-         contact_location = contact_location2,
-         contact_relation = contact_relation2) %>%
-  arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation, 
-          contact_type, contact_location, contact_duration, round)
-
-temp_contacts_rd2 <- contact_rd2 %>%
-dplyr::group_by(participant_id) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop")
-
-# round 3
-# names(contact_rd3)
-contact_rd3 <- contact_rd3 %>%
-  select(id, contact_id, contact_age_4, contact_sex, contact_type, contact_relation2,
-         contact_location2, contact_type, contact_duration) %>%
-  mutate(round="Three") %>%
-  mutate(contact_location2 = ifelse(contact_location2 == "Home", "Home", 
-                                    ifelse(contact_location2 == "Work", "Work", "Community"))) %>%
-  rename(participant_id = id,
-         contact_age = contact_age_4,
-         contact_location = contact_location2,
-         contact_relation = contact_relation2) %>%
-  arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation, 
-          contact_type, contact_location, contact_duration, round)
-
-# round 4
-# names(contact_rd4)
-contact_rd4 <- contact_rd4 %>%
-  select(id, contact_id, contact_age_4, contact_sex, contact_type, contact_relation2,
-         contact_location2, contact_duration) %>%
-  mutate(round="Four") %>%
-  mutate(contact_location2 = ifelse(contact_location2 == "Home", "Home", 
-                                    ifelse(contact_location2 == "Work", "Work", "Community"))) %>%
-  rename(participant_id = id,
-         contact_age = contact_age_4,
-         contact_location = contact_location2,
-         contact_relation = contact_relation2) %>%
-  arrange(participant_id, contact_id, contact_age, contact_sex, contact_relation, 
-          contact_type, contact_location, contact_duration, round)
-
-contacts <- rbind(contact_rd1, contact_rd2, contact_rd3, contact_rd4)
+# merge contact files
+contacts <- rbind(contact_rd1, contact_rd2, contact_rd3, contact_rd4, contact_rd5)
 contacts$round <- factor(contacts$round,
-                             levels = c("One", "Two", "Three","Four"))
-# rm(contact_rd1, contact_rd2)
+                             levels = c("One", "Two", "Three","Four", "Five"))
 
-# join participant and contact files for rounds
-vars1 <- c("participant_id","participant_sex","participant_age",
-           "participant_age_2","education","race","hispanic", "racehispanic",
-           "family_structure", "contact_relation", "company", "round", 
-           "contact_id", "contact_age", "contact_sex", 
-           "contact_location", "contact_duration", "contact_type")
+# merge round dfs
+df_all <- participants %>%
+  select("participant_id","round", "participant_age", "participant_sex", "race", 
+         "hispanic", "racehispanic", "education", "family_structure", "state_res",
+         "company") %>%
+  left_join(contacts, by=c("participant_id","round"))
 
-rd1 <- participants %>%
-  filter(round=="One") %>%
-  left_join(contact_rd1, by="participant_id")  %>%
-  drop_na(contact_age) %>%
-  rename(round = round.x) %>%
-  select(vars1)
+# df_all <- rbind(df_rd1, df_rd2, df_rd3, df_rd4, df_rd5)
 
-rd2 <- participants %>%
-  filter(round=="Two") %>%
-  left_join(contact_rd2, by="participant_id") %>%
-  rename(round = round.x) %>%
-  select(vars1)
-
-rd3 <- participants %>%
-  filter(round=="Three") %>%
-  left_join(contact_rd3, by="participant_id") %>%
-  rename(round = round.x) %>%
-  select(vars1)
-
-rd4 <- participants %>%
-  filter(round=="Four") %>%
-  left_join(contact_rd4, by="participant_id") %>%
-  rename(round = round.x) %>%
-  select(vars1)
-
-df_all <- rbind(rd1, rd2, rd3, rd4)
-df_all$round <- factor(df_all$round,
-                       levels = c("One", "Two", "Three", "Four"))
-
-
-```
-
-```{r}
-# rm(participant_rd1, participant_rd2, participant_rd3, participant_rd4)
-# rm(contact_rd1, contact_rd2, contact_rd3, contact_rd4)
-# rm(rd1, rd2, rd3, rd4)
-```
-
-```{r variables, include=FALSE, echo=FALSE}
-vars2 <- c("company", "participant_sex", "participant_age", "education",
-         "family_structure", "race", "hispanic", "round") # "marital",
 ```
 
 
 ### Table 1: Compare characteristics of participants across rounds
-Table showing the distribution of participant characteristics by company, age, sex, education level, family structure, race, Hispanic origins for round 1-4 of the survey.
+Table showing the distribution of participant characteristics by company, age, sex, education level, family structure, race, Hispanic origins for round 1-5 of the survey.
 ```{r baseline_participants, echo=FALSE, warnings=FALSE}
 # install.packages("compareGroups")
 # library(compareGroups)
@@ -343,15 +332,16 @@ Table showing the distribution of participant characteristics by company, age, s
 
 label(participants$company) <- "Company"
 label(participants$participant_age) <- "Age"
-label(participants$participant_age_2) <- "Age"
+# label(participants$participant_age_2) <- "Age"
 label(participants$participant_sex) <- "Sex"
 label(participants$education) <- "Education"
-label(participants$racehispanic) <- "Race/ Ethnicity"
+label(participants$racehispanic) <- "Race/ Hispanic"
+# label(participants$race) <- "Race"
 # label(participants$hispanic) <- "Hispanic"
 label(participants$family_structure) <- "Family structure"
 
 t1 <- participants %>%
-  select(company, participant_sex, participant_age_2, education,
+  select(company, participant_sex, participant_age, education,
          family_structure, racehispanic, round) %>%
   tbl_summary(by=round, 
               percent="column",
@@ -360,23 +350,16 @@ t1 <- participants %>%
   add_overall() %>%
   bold_labels() %>%
   modify_header(label = "") %>%
-  modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**Survey round**") %>%
-  modify_caption("**Table 1: Baseline characteristics of participants across rounds.**")
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4", "stat_5") ~ "**Survey round**") %>%
+  modify_caption("**Table 1: Baseline characteristics of participants across rounds on day 1.**")
 
 t1
 
 # save table
-t1a <- as_tibble(t1)
-# write.csv(t1a, "../output/tables/table1_participant_characteristics.csv")
-write.csv(t1a, "../output/tables/table1.1_participant_characteristics.csv")
+t1 <- as_tibble(t1)
+write.csv(t1, "../output/day1_only/table1_participant_characteristics_rd1-5.csv")
+# rm(t1)
 
-# table 1 had race and hispanic separately, table 1.1 has racehispanic.
-rm(t1a)
-# library(table1)
-# table1(~ company + participant_age + participant_sex + education + race+ hispanic + family_structure | round,
-#        data=participants, render.missing=NULL, topclass="Rtable1-zebra", 
-#        caption = "Table: Comparing round 1 and round 2 data",
-#        footnote = "This compares round 1 (April-June 2020) and round 2 (December 2020-February 2021). In round 2, two additional companies contributed data to the survey.")
 ```
 
 \
@@ -387,106 +370,78 @@ rm(t1a)
 
 label(contacts$contact_age) <- "Age of contact"
 label(contacts$contact_sex) <- "Sex of contact"
-label(contacts$contact_type) <- "Type of contact"
 label(contacts$contact_location) <- "Location of contact"
-label(contacts$contact_duration) <- "Duration of contact"
-# label(contacts$contact_relation2) <- "Relationship to contact"
+label(contacts$contact_type) <- "Type of contact"
+label(contacts$contact_relation) <- "Relationship to contact"
 
-contacts$contact_duration <- factor(contacts$contact_duration,
-                                    levels = c("<5 mins", "5-15 mins", "15 mins-1 hr", 
-                                             "1-4 hrs", "4+ hrs"))
 
 t2 <- contacts %>%
-  select(contact_age, contact_sex, contact_type, contact_location, 
-         contact_duration, round) %>%
+  select(contact_age, contact_sex, contact_relation, contact_location, 
+         contact_type, round) %>%
   tbl_summary(by=round, 
               percent="column",
               digits = all_categorical() ~ 0,
               missing="no") %>%
   add_overall() %>%
   modify_header(label = "") %>%
-  modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**Survey round**") %>%
-  modify_caption("**Table 2: Characteristics of contacts across rounds.**") %>%
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4",  "stat_5") ~ "**Survey round**") %>%
+  modify_caption("**Table 2: Characteristics of contacts across rounds on day 1 only.**") %>%
   bold_labels()
 t2
 
 # save table
-t2a <- as_tibble(t2)
-write.csv(t2a, "../output/tables/table2_contact_characteristics.csv")
-rm(t2a)
-# table1(~ contact_age + contact_sex + contact_location + contact_type | round,
-#        data=contacts,render.missing=NULL)
+t2 <- as_tibble(t2)
+write.csv(t2, "..//output/day1_only/table2_contact_characteristics_rd1-5.csv")
+
+# in rd5, change Non-Household to Non-household
 ```
 \
 \
-
-```{r, echo=FALSE}
-# save data that will be used shared in zenodo
-# 
-# # merge contact & participant data
-# df_all_merged <- left_join(participants, contacts,
-#                      by=c("participant_id", "round"))
-# 
-# write_rds(df_all_merged, "/Users/mck/Library/CloudStorage/OneDrive-EmoryUniversity/4.Data and Analysis/CorporateMix/2.Contact data/zenodo-datashare/data/raw/df_all_merged.RDS")
-
-```
-
 
 ### Table 3: Average contacts by round
 ```{r table3, include=FALSE}
-r1_contacts <- day_rd1 %>%
+r1_contacts <- day1_rd1 %>%
   # .[!duplicated(.$participant_id),] %>%
-    rename(r1_contacts = num_contacts) %>%
+    rename(r1_contacts = social_cont) %>% # ,participant_id = part_id
   select(participant_id, r1_contacts)
 
 r2_contacts <- df_all %>%
   select("participant_id","round") %>%
   filter(round=="Two") %>%
-  dplyr::group_by(participant_id) %>%
-  dplyr::summarize(r2_contacts = n(), .groups = "drop")
+  group_by(participant_id) %>%
+  summarise(r2_contacts = n())
 
 r3_contacts <- df_all %>%
   select("participant_id","round") %>%
   filter(round=="Three") %>%
-  dplyr::group_by(participant_id) %>%
-  dplyr::summarize(r3_contacts = n(), .groups = "drop")
+  group_by(participant_id) %>%
+  summarise(r3_contacts = n())
 
 r4_contacts <- df_all %>%
   select("participant_id","round") %>%
   filter(round=="Four") %>%
-  dplyr::group_by(participant_id) %>%
-  dplyr::summarize(r4_contacts = n(), .groups = "drop")
+  group_by(participant_id) %>%
+  summarise(r4_contacts = n())
+
+r5_contacts <- df_all %>%
+  select("participant_id","round") %>%
+  filter(round=="Five") %>%
+  group_by(participant_id) %>%
+  summarise(r5_contacts = n())
 
 df_allb <- left_join(df_all, r1_contacts, by="participant_id")
 df_allb <- left_join(df_allb, r2_contacts, by="participant_id")
 df_allb <- left_join(df_allb, r3_contacts, by="participant_id")
 df_allb <- left_join(df_allb, r4_contacts, by="participant_id")
+df_allb <- left_join(df_allb, r5_contacts, by="participant_id")
+
 
 df_allb$r1_contacts <- as.numeric(df_allb$r1_contacts)
 df_allb$r2_contacts <- as.numeric(df_allb$r2_contacts)
 df_allb$r3_contacts <- as.numeric(df_allb$r3_contacts)
 df_allb$r4_contacts <- as.numeric(df_allb$r4_contacts)
+df_allb$r4_contacts <- as.numeric(df_allb$r5_contacts)
 
-
-# all_rounds_contacts <- df_all %>%
-#   select("participant_id","round") %>%
-#   dplyr::group_by(participant_id, round) %>%
-#   dplyr::summarize(num_contacts = n())
-# 
-# ##### CONTINUE FROM HERE
-# # for this table, group contacts by each variable separately and join
-# 
-# df_allb <- left_join(df_all, all_rounds_contacts, 
-#                      by=c("participant_id"="participant_id", "round"="round"))
-# df_allb$num_contacts <- as.numeric(df_allb$num_contacts)
-
-
-
-
-# # for sex, drop 20 records with "Not reported"
-# df_allb <- df_allb %>%
-#   subset(participant_sex != "Not reported")
-# df_allb$participant_sex <- droplevels(df_allb$participant_sex)
 ```
 
 
@@ -494,10 +449,10 @@ df_allb$r4_contacts <- as.numeric(df_allb$r4_contacts)
 list <- list(0)  ## empty list
 
 ## specify participant characteristic stratifications for cross tabs/analysis
-variables <- data.frame(var=c("participant_sex","participant_age_2", "family_structure",
-                              "contact_location", "company", "racehispanic"), #  "contact_relation",
-                        name=c("Sex","Age Group", "Family structure",
-                               "Location of contact", "Company","Race/ Ethnicity")) %>% # "Relationship to contact"
+variables <- data.frame(var=c("participant_sex","participant_age", "family_structure",
+                              "racehispanic", "contact_location"), #, "company"  "contact_relation",
+                        name=c("Sex","Age Group", "Family structure", "Race/ Hispanic",
+                               "Location of contact")) %>% #, "Company"  "Relationship to contact"
   mutate(var = as.character(var),
          name = as.character(name))
 
@@ -520,7 +475,7 @@ for (i in 1:nrow(variables)){
     filter(round =="One") %>%
     droplevels(.$company) %>%
     distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
-    dplyr::group_by(.dots = variables$var[[i]]) %>% 
+    group_by(.dots = variables$var[[i]]) %>% 
     do(data.frame(t(quantile(.$r1_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
   t1$med_contact <- as.character(paste(t1$X50.," (",t1$X25.,"-",t1$X75.,")",sep="")) # Formatting for export
   
@@ -528,7 +483,7 @@ for (i in 1:nrow(variables)){
   t2 <- df_allb %>%
     filter(round == "Two") %>%
     distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
-    dplyr::group_by(.dots = variables$var[[i]]) %>% 
+    group_by(.dots = variables$var[[i]]) %>% 
     do(data.frame(t(quantile(.$r2_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
   t2$med_contact <- as.character(paste(t2$X50.," (",t2$X25.,"-",t2$X75.,")",sep="")) # Formatting for export
   
@@ -537,7 +492,7 @@ for (i in 1:nrow(variables)){
     filter(round == "Three") %>%
     # droplevels(.$race) %>%
     distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
-    dplyr::group_by(.dots = variables$var[[i]]) %>% 
+    group_by(.dots = variables$var[[i]]) %>% 
     do(data.frame(t(quantile(.$r3_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
   t3$med_contact <- as.character(paste(t3$X50.," (",t3$X25.,"-",t3$X75.,")",sep="")) # Formatting for export 
   
@@ -546,26 +501,39 @@ for (i in 1:nrow(variables)){
     filter(round == "Four") %>%
     # droplevels(.$race) %>%
     distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
-    dplyr::group_by(.dots = variables$var[[i]]) %>% 
+    group_by(.dots = variables$var[[i]]) %>% 
     do(data.frame(t(quantile(.$r4_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
   t4$med_contact <- as.character(paste(t4$X50.," (",t4$X25.,"-",t4$X75.,")",sep="")) # Formatting for export
   #   out <- paste0("This is my output of iteration ", i, ".")  # Some output
   #   print(out)
   # }
 
+    # Median contacts for round 5
+  t5 <- df_allb %>%
+    filter(round == "Five") %>%
+    # droplevels(.$race) %>%
+    distinct(participant_id, .keep_all = TRUE) %>% # since this is total contacts per person, keep only 1 distinct record
+    group_by(.dots = variables$var[[i]]) %>% 
+    do(data.frame(t(quantile(.$r5_contacts, na.rm=TRUE, probs=c(0.25,0.5,0.75))))) # Median and IQR      
+  t5$med_contact <- as.character(paste(t5$X50.," (",t5$X25.,"-",t5$X75.,")",sep="")) # Formatting for export
+  #   out <- paste0("This is my output of iteration ", i, ".")  # Some output
+  #   print(out)
+  # }
   # because R1 has 3 companies compared to 5 in the others, we use qpcR:::cbind.na() to bind the columns, else we get an error.
-  t0<-qpcR:::cbind.na(t0, t1$med_contact, t2$med_contact, t3$med_contact, t4$med_contact) # Bind columns together
+  t0<-qpcR:::cbind.na(t0, t1$med_contact, t2$med_contact, t3$med_contact,
+                      t4$med_contact, t5$med_contact) # Bind columns together
 
-  t0<- t0[,c(1,2,3,4,5,6)]
+  t0<- t0[,c(1,2,3,4,5,6,7)]
  
   t0$Total <- paste(t0$Total," (","", t0$Col,")",sep="")
-  t0 <- t0[,c(1,3,4,5,6)]
+  t0 <- t0[,c(1,3,4,5,6,7)]
   t0[,2]<-as.character(t0[,2])
   t0[,3]<-as.character(t0[,3])
   t0[,4]<-as.character(t0[,4])
   t0[,5]<-as.character(t0[,5])
-  # t0[,6]<-as.character(t0[,6])
- 
+  t0[,6]<-as.character(t0[,6])
+
+
   t0<-rbind(Tot, t0)
   
   rownames(t0)[1]<-variables$name[[i]]
@@ -580,10 +548,13 @@ res_restruct<- function(res){
 }
 
 table_one <- res_restruct(list)
-colnames(table_one) <- c("Total (%)", "Round 1", "Round 2", "Round 3", "Round 4")
+colnames(table_one) <- c("Total (%)", "Round 1", "Round 2", "Round 3",
+                         "Round 4",  "Round 5")
 
 kable(table_one, digits = 0, align = "r") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+write.csv(table_one, "..//output/day1_only/SI_table_day1_only_contacts_rd1-5.csv")
 
 ```
 
@@ -595,34 +566,35 @@ The figure below shows the distribution of contacts by age for rounds 1-4.
 ```{r graphs1, warning=FALSE, echo=FALSE}
 
 contacts_age <- df_all %>%
-  dplyr::group_by(participant_id, participant_age, round) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop")
+  group_by(participant_id, participant_age, round) %>%   # group by id and count number of contacts
+  dplyr::summarize(num_contacts = n())
 
 contacts_sex <- df_all %>%
-  dplyr::group_by(participant_id, participant_sex, round) %>%   # group by id and count number of contacts
+  group_by(participant_id, participant_sex, round) %>%   # group by id and count number of contacts
   filter(participant_sex != "Prefer not to answer") %>% # drop "Prefer not to answer"
-  dplyr::summarize(num_contacts = n(), .groups = "drop")
+  dplyr::summarize(num_contacts = n())
 
 contacts_education <- df_all %>%
-  dplyr::group_by(participant_id, education, round) %>%   # group by id and count number of contacts
+  group_by(participant_id, education, round) %>%   # group by id and count number of contacts
   drop_na(education) %>%
-  dplyr::summarize(num_contacts = n(), .groups = "drop")
+  dplyr::summarize(num_contacts = n())
 
-contacts_racehispanic <- df_all %>%
-  dplyr::group_by(participant_id, racehispanic, round) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop")
+contacts_race <- df_all %>%
+  group_by(participant_id, race, round) %>%   # group by id and count number of contacts
+  dplyr::summarize(num_contacts = n())
 
-box_colors <-  c("#08519c","#3182bd","#6baed6","#bdd7e7") # c("#0868ac", "#43a2ca", "7bccc4", "#bae4bc" ) #c("#dfc27d", "#80cdc1", "#a6611a")
+
+
+box_colors <-  c("#85b5d3","#98c0d9","#aacce0","#bdd7e7", "#d0e2ee") 
+# c("#0868ac", "#43a2ca", "7bccc4", "#bae4bc" ) #c("#dfc27d", "#80cdc1", "#a6611a")
 
 box1 <- ggplot(contacts_age, aes(x = participant_age, y = num_contacts, fill=round))
 box1 <- box1 +
   geom_boxplot(width = .50, position = position_dodge(0.6), outlier.size = 0.5) + #outlier.shape = NA,
   # theme_cowplot() +
   theme_half_open() +
-  scale_fill_manual(values = box_colors, labels = c("1", "2", "3", "4")) +
+  scale_fill_manual(values = box_colors, labels = c("1", "2", "3", "4", "5")) +
   scale_y_continuous(limits = c(0, 40)) +
-  # xlab("Age group") + 
-  # ylab("Number of contacts") + 
   labs(fill="Round",
        x = "Age group",
        y = "Number of contacts" ) +
@@ -632,7 +604,7 @@ box1 <- box1 +
   theme(plot.title = element_text(size = 12), 
         axis.title.x = element_text(size=10, face="bold", angle=0),
         axis.title.y = element_text(size=10, face="bold"),
-        axis.text.x = element_text(size = 8), # changed from txt_size (MK)
+        axis.text.x = element_text(size = 8),
         axis.text.y = element_text(size= 8))
 # box1 
 
@@ -651,14 +623,14 @@ box2 <- box2 +
   theme(plot.title = element_text(size = 12), 
           axis.title.x = element_text(size=10, face="bold", angle=0),
           axis.title.y = element_text(size=10, face="bold"),
-          axis.text.x = element_text(size = 8), # changed from txt_size (MK)
+          axis.text.x = element_text(size = 8),
           axis.text.y = element_text(size= 8))
 
 
 # box3 <- # take out NA as option
 box3 <- ggplot(contacts_education, aes(x = education, y = num_contacts, fill=round))
 box3 <- box3 +
-  geom_boxplot(width = .50, position = position_dodge(0.6), outlier.size = 0.5) + #outlier.shape = NA,
+  geom_boxplot(width = .50, position = position_dodge(0.6), outlier.size = 0.5) +
   # theme_cowplot() +
   theme_half_open() +
   scale_fill_manual(values = box_colors) +
@@ -674,14 +646,14 @@ box3 <- box3 +
           axis.text.x = element_text(size = 8), # changed from txt_size (MK)
           axis.text.y = element_text(size= 8))
 
-box4 <- ggplot(contacts_racehispanic, aes(x = racehispanic, y = num_contacts, fill=round))
+box4 <- ggplot(contacts_race, aes(x = race, y = num_contacts, fill=round))
 box4 <- box4 +
   geom_boxplot(width = .50, position = position_dodge(0.6), outlier.size = 0.5) + #outlier.shape = NA,
   # theme_cowplot() +
   theme_half_open() +
   scale_fill_manual(values = box_colors) +
   scale_y_continuous(limits = c(0, 40)) +
-  xlab("Race/ Hispanic") + 
+  xlab("Race") + 
   ylab("") + 
   theme(legend.title= element_blank(),
         legend.text = element_text(size = 12),
@@ -689,7 +661,7 @@ box4 <- box4 +
   theme(plot.title = element_text(size = 12), 
           axis.title.x = element_text(size=10, face="bold", angle=0),
           axis.title.y = element_text(size=10, face="bold"),
-          axis.text.x = element_text(size = 8), # changed from txt_size (MK)
+          axis.text.x = element_text(size = 8),
           axis.text.y = element_text(size= 8))
 
 # legend <- get_legend(box1 + theme(legend.box.margin = margin(0, 0, 0, 12)))
@@ -710,38 +682,37 @@ legend <- get_legend(
 
 box5 <- plot_grid(box5, legend, rel_widths = c(2,.4))
 
-# tiff("../output/figs/contact_distribution.tiff", units="in", width=8, height=6, res=300)
+# tiff("../output/day1_only/contact_distribution.tiff", units="in", width=8, height=6, res=300)
 box5
-
-rm(box1, box2, box3, box4)
 ```
 
 \
 \
 
 ```{r graphs2, warning=FALSE, echo=FALSE}
-
 contacts_location_round <- df_all %>%
-  dplyr::group_by(participant_id, contact_location, round) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop")
+  group_by(participant_id, contact_location, round) %>%   # group by id and count number of contacts
+  dplyr::summarize(num_contacts = n())
 
 # here, changed to df_allb from contacts_location_round above.
 box6 <- df_all %>%
-  dplyr::group_by(participant_id, contact_location, round) %>%
-  dplyr::summarize(num_contacts = n(), .groups = "drop") %>%
+  group_by(participant_id, contact_location, round) %>%
+  dplyr::summarize(num_contacts = n()) %>%
+  na.omit() %>%
   ggplot(., aes(x = contact_location, y = num_contacts, fill=round))
 
 box6 <- box6 +
   geom_boxplot(width = .50, position = position_dodge(0.6), outlier.size = 0.5, outlier.shape = NA) +
   # theme_cowplot() +
   theme_half_open() +
-  scale_fill_manual(labels=c("Apr-Jun '20","Nov'20-Jan'21","Jun-Aug'21","Nov-Dec'21"), 
+  scale_fill_manual(labels=c("Apr-Jun '20","Nov'20-Jan'21","Jun-Aug '21",
+                             "Nov-Dec'21", "Mar-Apr '22"), 
                     values = box_colors) +
   scale_y_continuous(limits = c(0, 20)) +
   # xlab("Age group") + 
   # ylab("Number of contacts") + 
   labs(fill="Round",
-       x = "Setting", #changed from Location to setting
+       x = "Location",
        y = "Number of contacts" ) +
   theme(legend.title = element_text(size=14),
         legend.text = element_text(size = 10),
@@ -753,57 +724,24 @@ box6 <- box6 +
         axis.text.x = element_text(size = 16), # changed from txt_size (MK)
         axis.text.y = element_text(size= 16))
 box6
-# tiff("../output/figs/contact_distribution_location.tiff", units="in", width=8, height=6, res=150)
+# tiff("../output/day1_only/contact_distribution_location.tiff", units="in", width=8, height=6, res=150)
 # dev.off()
 
 median_contacts_rounds <- contacts_location_round %>%
-  dplyr::group_by(round, contact_location) %>%
-  dplyr::summarize(
+  group_by(round, contact_location) %>%
+  summarise(
     count = n(),
     mean = mean(num_contacts, na.rm = TRUE),
     sd = sd(num_contacts, na.rm = TRUE),
     median = median(num_contacts, na.rm = TRUE),
     # qs = quantile(num_contacts, c(0.25, 0.75)), prob = c(0.25, 0.75))
     q1 = quantile(num_contacts, c(0.25), prob = c(0.25), na.rm = TRUE),
-    q3 = quantile(num_contacts, c(0.75), prob = c(0.75), na.rm = TRUE),
-    .groups = "drop")
+    q3 = quantile(num_contacts, c(0.75), prob = c(0.75), na.rm = TRUE))
 
 ```
-
-```{r}
-meansd_rd1 <- day_rd1 %>%
-  dplyr::summarize(mean = mean(num_contacts, na.rm = TRUE),
-            sd = sd(num_contacts, na.rm = TRUE),
-            .groups = "drop")
-  
-meansd_r2 <- df_all %>%
-  filter(round=="Two") %>%
-  dplyr::group_by(participant_id) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop") %>%
-  dplyr::summarize(mean = mean(num_contacts, na.rm = TRUE),
-            sd = sd(num_contacts, na.rm = TRUE), .groups = "drop")
-
-meansd_r3 <- df_all %>%
-  filter(round=="Three") %>%
-  dplyr::group_by(participant_id) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop") %>%
-  dplyr::summarize(mean = mean(num_contacts, na.rm = TRUE),
-            sd = sd(num_contacts, na.rm = TRUE), .groups = "drop")
-
-meansd_r4 <- df_all %>%
-  filter(round=="Four") %>%
-  dplyr::group_by(participant_id) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop") %>%
-  dplyr::summarize(mean = mean(num_contacts, na.rm = TRUE),
-            sd = sd(num_contacts, na.rm = TRUE),
-            .groups = "drop")
-
-```
-
 \
 \
 
-# Median contacts at work, home and community by round
 ```{r}
 median_contacts_rounds
 ```
@@ -816,54 +754,59 @@ median_contacts_rounds
 # Here, I compute the number of contacts as a line list count of each person with whom the participant had a contact. This is done same way as for temp 2.  
 # temp2 <- df_all %>%
 #   filter(round=="Two") %>% # keep round 1 contacts only
-#   dplyr::group_by(participant_id, participant_age) %>%   # group by id and count number of contacts
+#   group_by(participant_id, participant_age) %>%   # group by id and count number of contacts
 #   dplyr::summarize(num_contacts = n()) %>%
 #   mutate(round="Two")
 
-# However, doing it the way above (temp2) produces summary results that are different from what we reported in the manuscript we published. Hence, I use the variable day_rd1$social_cont file to compute the summary statistics.
-
-temp1 <- day_rd1 %>%
+# However, doing it the way above (temp2) produces summary results that are different from what we reported in the manuscript we published. Hence, I use the variable day1_rd1$social_cont file to compute the summary statistics.
+temp1 <- day1_rd1 %>%
   # rename(num_contacts = social_cont) %>%
-  .[!duplicated(.$participant_id),] %>%
-  select(participant_id, num_contacts) %>%
+  # .[!duplicated(.$participant_id),] %>%
+  select(participant_id, social_cont) %>%
+  rename(num_contacts = social_cont) %>%
   mutate(round="One")
 
 temp2 <- df_all %>%
   filter(round=="Two") %>% # keep round 2 contacts only
-  dplyr::group_by(participant_id, participant_age) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop") %>%
+  group_by(participant_id, participant_age) %>%   # group by id and count number of contacts
+  dplyr::summarize(num_contacts = n()) %>%
   select(participant_id, num_contacts) %>%
   mutate(round="Two")
 
 temp3 <- df_all %>%
   filter(round=="Three") %>% # keep round 3 contacts only
-  dplyr::group_by(participant_id, participant_age) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop") %>%
+  group_by(participant_id, participant_age) %>%   # group by id and count number of contacts
+  dplyr::summarize(num_contacts = n()) %>%
   select(participant_id, num_contacts) %>%
   mutate(round="Three")
 
 temp4 <- df_all %>%
   filter(round=="Four") %>% # keep round 4 contacts only
-  dplyr::group_by(participant_id, participant_age) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop") %>%
+  group_by(participant_id, participant_age) %>%   # group by id and count number of contacts
+  dplyr::summarize(num_contacts = n()) %>%
   select(participant_id, num_contacts) %>%
   mutate(round="Four")
 
+temp5 <- df_all %>%
+  filter(round=="Five") %>% # keep round 4 contacts only
+  group_by(participant_id, participant_age) %>%   # group by id and count number of contacts
+  dplyr::summarize(num_contacts = n()) %>%
+  select(participant_id, num_contacts) %>%
+  mutate(round="Five")
 
-df_contacts_round <- rbind(temp1, temp2, temp3, temp4)
-rm(temp1, temp2, temp3, temp4)
+df_contacts_round <- rbind(temp1, temp2, temp3, temp4, temp5)
+rm(temp1, temp2, temp3, temp4, temp5)
 
 # 1. here, for each of the rounds, we calculate the mean (sd) and median (IQR) values. Due to the non-normal distribution of the data, we conduct a Kruskal-Wallis rank-sum test of significance.
-summary_rounds <- dplyr::group_by(df_contacts_round, round) %>%
-  dplyr::summarize(
+summary_rounds <- group_by(df_contacts_round, round) %>%
+  summarise(
     count = n(),
     mean = mean(num_contacts, na.rm = TRUE),
     sd = sd(num_contacts, na.rm = TRUE),
     median = median(num_contacts, na.rm = TRUE),
     # qs = quantile(num_contacts, c(0.25, 0.75)), prob = c(0.25, 0.75))
     q1 = quantile(num_contacts, c(0.25), prob = c(0.25), na.rm = TRUE),
-    q3 = quantile(num_contacts, c(0.75), prob = c(0.75), na.rm = TRUE),
-    .groups = "drop")
+    q3 = quantile(num_contacts, c(0.75), prob = c(0.75), na.rm = TRUE))
 # summary_rounds
 
 # 2. Kruskall Wallis test of change.
@@ -888,14 +831,14 @@ library("ggpubr")
 
 p1 <- ggbarplot(df_contacts_round, x = "round", y = "num_contacts",
        add = c("median_q1q3"),
-       order = c("One", "Two", "Three", "Four"),
+       order = c("One", "Two", "Three", "Four", "Five"),
        color = c("black"),
        fill = box_colors,
        ylab = "Number of contacts", xlab = "Round",
        label=TRUE,
        lab.vjust = -1.0, lab.hjust = -1.0,
        position = position_dodge(0.1))
-tiff("../output/figs/fig2_median_all_rounds.tiff", units="in", width=6, height=6, res=300)
+tiff("../output/day1_onlyfig2_median_all_rounds_rd1-5.tiff", units="in", width=6, height=6, res=300)
 p1
 dev.off()
 # There is a significant difference in the mean contact values between round 1 and round 2 (Kruskal-Wallis rank sum test, p=`r test_rounds_12$p.value`) and round 2 and 3 (Kruskal-Wallis rank sum test, p=`r test_rounds_23$p.value`).
@@ -912,7 +855,6 @@ The median (IQR) contact rates for round 1, 2,  3 and 4 were
 `r summary_rounds$median[3]` (`r summary_rounds$q1[3]`, `r summary_rounds$q3[3]`), and
 `r summary_rounds$median[1]` (`r summary_rounds$q1[1]`, `r summary_rounds$q3[1]`), 
 respectively.
-
 \
 \
 
@@ -935,8 +877,8 @@ standard_str$contact_age <- as.character(standard_str$contact_age)
 ## Number participants by age group
 num_participants_rd1 <- participants %>%
   filter(round == "One") %>%
-  dplyr::group_by(participant_age) %>%
-  dplyr::summarize(n=n(), .groups = "drop")
+  group_by(participant_age) %>%
+  dplyr::summarize(n=n())
 num_participants_rd1$participant_age <- as.character(num_participants_rd1$participant_age) 
 
 ## Contact matrix
@@ -958,8 +900,8 @@ df_rd2_temp$contact_age <- as.character(df_rd2_temp$contact_age)
 ## Number participants by age group
 num_participants_rd2 <- participants %>%
   filter(round == "Two") %>%
-  dplyr::group_by(participant_age) %>%
-  dplyr::summarize(n=n(), .groups = "drop")
+  group_by(participant_age) %>%
+  dplyr::summarize(n=n())
 
 m1_rd2 <- make_matrix_rd2(
   df_rd2_temp %>%
@@ -983,8 +925,8 @@ df_rd3_temp$contact_age <- as.character(df_rd3_temp$contact_age)
 ## Number participants by age group
 num_participants_rd3 <- participants %>%
   filter(round == "Three") %>%
-  dplyr::group_by(participant_age) %>%
-  dplyr::summarize(n=n(), .groups = "drop")
+  group_by(participant_age) %>%
+  dplyr::summarize(n=n())
 
 m1_rd3 <- make_matrix_rd3(
   df_rd3_temp %>%
@@ -1006,8 +948,8 @@ df_rd4_temp$contact_age <- as.character(df_rd4_temp$contact_age)
 ## Number participants by age group
 num_participants_rd4 <- participants %>%
   filter(round == "Four") %>%
-  dplyr::group_by(participant_age) %>%
-  dplyr::summarize(n=n(), .groups = "drop")
+  group_by(participant_age) %>%
+  dplyr::summarize(n=n())
 
 m1_rd4 <- make_matrix_rd4(
   df_rd4_temp %>%
@@ -1019,46 +961,64 @@ m1_rd4 <- make_matrix_rd4(
             color = "black", size = 8) +
   theme(axis.title.y = element_blank())
 
+## Number participants by age group
+num_participants_rd5 <- participants %>%
+  filter(round == "Five") %>%
+  group_by(participant_age) %>%
+  dplyr::summarize(n=n())
+
+m1_rd5 <- make_matrix_rd5(
+  df_rd5_temp %>%
+    filter(!is.na(contact_age)), # Remove those without contact age
+  replace(is.na(.), 0),
+  title = "E. Mar-Apr 22 (N=433)",
+  legendpos ="none") +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 8) +
+  theme(axis.title.y = element_blank())
 
 # get legend
-legend_m1 <- get_legend(m1_rd4 +
-                          guides(color = guide_legend(nrow = 1)) +
-                          theme(legend.position = "right",
-                                legend.justification = "left"))
+legend_m1 <- get_legend(
+  m1_rd5 + 
+    guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "right",
+          legend.justification = "left"))
 
-m_all <- plot_grid(m1_rd1, m1_rd2, legend_m1,
+m_all <- plot_grid(m1_rd1, m1_rd2,
                    m1_rd3, m1_rd4,
+                   m1_rd5, legend_m1,
           # labels = c("A","B","","C","D"),
           # label_size = 22,
-          ncol=3, nrow=2, rel_widths=c(1.2,1.15,.2),
+          ncol=2, nrow=3, rel_widths=c(1.2,1.2),
           scale=0.95, align="hv")
 
 m_all
 ```
 
+
 ```{r, include=FALSE}
 
-pdf("../output/figs/contact_distribution_location.pdf",  width=8, height=6) #units="in",
+tiff("../output/day1_onlycontact_distribution_location.tiff", units="in", width=8, height=6, res=150)
 box6
 dev.off()
 
-tiff("../output/figs/matrix_round1.tiff", units="in", width=6, height=6, res=75)
+tiff("../output/day1_only/matrix_round1.tiff", units="in", width=6, height=6, res=150)
 m1_rd1
 dev.off()
 
-tiff("../output/figs/matrix_round2.tiff", units="in", width=6, height=6, res=75)
+tiff("../output/day1_only/matrix_round2.tiff", units="in", width=6, height=6, res=150)
 m1_rd2
 dev.off()
 
-tiff("../output/figs/matrix_round3.tiff", units="in", width=6, height=6, res=75)
+tiff("../output/day1_only/matrix_round3.tiff", units="in", width=6, height=6, res=150)
 m1_rd3
 dev.off()
 
-tiff("../output/figs/matrix_round4.tiff", units="in", width=6, height=6, res=75)
+tiff("../output/day1_only/matrix_round4.tiff", units="in", width=6, height=6, res=150)
 m1_rd4
 dev.off()
 
-tiff("../output/figs/matrix_all_rounds.tiff", units="in", width=20, height=18, res=75)
+tiff("../output/day1_only/matrix_all_rounds.tiff", units="in", width=18, height=18, res=75)
 m_all
 dev.off()
 
@@ -1077,17 +1037,13 @@ age_labels <- c("0-9"="0-", "10-19"="10-", "20-29"="20-",
 m1_rd1_work <- make_matrix_rd1(
   rd1 %>%
     filter(contact_location=="Work"),
-  title = "",
+  title = "Work", 
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
-            color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.text.y = element_text(size = 20),
-        axis.title.y = element_text(size = 25)) +
-   theme(panel.background = element_rect(fill='transparent'),
-         plot.background = element_rect(fill='transparent', color=NA)) +
-  labs(title="Round 1") 
+        axis.title.y = element_text(size = 25))
 # m1_rd1_work
 
 ## Round 2
@@ -1100,10 +1056,7 @@ m1_rd2_work <- make_matrix_rd2(
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
-        axis.text.y = element_blank()) +
-     theme(panel.background = element_rect(fill='transparent'),
-           plot.background = element_rect(fill='transparent', color=NA)) +
-  labs(title="Round 2")
+        axis.text.y = element_blank())
 # m1_rd2_work
 
 ## Round 3
@@ -1116,10 +1069,7 @@ m1_rd3_work <- make_matrix_rd3(
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
-        axis.text.y = element_blank()) +
-     theme(panel.background = element_rect(fill='transparent'),
-           plot.background = element_rect(fill='transparent', color=NA)) +
-  labs(title="Round 3")
+        axis.text.y = element_blank())
 # m1_rd3_work
 
 # Round 4
@@ -1132,10 +1082,7 @@ m1_rd4_work <- make_matrix_rd4(
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
-        axis.text.y = element_blank()) +
-     theme(panel.background = element_rect(fill='transparent'),
-           plot.background = element_rect(fill='transparent', color=NA)) +
-  labs(title="Round 4")
+        axis.text.y = element_blank())
 # m1_rd4_work
 
 
@@ -1143,15 +1090,13 @@ m1_rd4_work <- make_matrix_rd4(
 m1_rd1_home <- make_matrix_rd1(
   rd1 %>%
     filter(contact_location=="Home"),
-  title = "",
+  title = "Home", 
   legendpos ="") +
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.text.y = element_text(size = 20),
-        axis.title.y = element_text(size = 25)) +
-   theme(panel.background = element_rect(fill='transparent'),
-         plot.background = element_rect(fill='transparent', color=NA))
+        axis.title.y = element_text(size = 25))
 # m1_rd1_home
 
 ## Round 2
@@ -1161,8 +1106,6 @@ m1_rd2_home <- make_matrix_rd2(
   title = "", 
   legendpos ="") +
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
-  theme(panel.background = element_rect(fill='transparent'),
-        plot.background = element_rect(fill='transparent', color=NA)) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
@@ -1176,8 +1119,6 @@ m1_rd3_home <- make_matrix_rd3(
   title = "", 
   legendpos ="")  +
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
-  theme(panel.background = element_rect(fill='transparent'),
-        plot.background = element_rect(fill='transparent', color=NA)) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
@@ -1190,9 +1131,7 @@ m1_rd4_home <- make_matrix_rd4(
     filter(contact_location=="Home"),
   title = "", 
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +    
-  theme(panel.background = element_rect(fill='transparent'),
-        plot.background = element_rect(fill='transparent', color=NA)) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
@@ -1204,16 +1143,14 @@ m1_rd4_home <- make_matrix_rd4(
 m1_rd1_comm <- make_matrix_rd1(
   rd1 %>%
     filter(contact_location=="Community"),
-  title = "",
+  title = "Community", 
   legendpos ="")  +
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
   scale_x_discrete(labels=age_labels) +
   theme(axis.title.x = element_text(size = 25),
         axis.text.x = element_text(size = 20),
         axis.title.y = element_text(size = 25),
-        axis.text.y = element_text(size = 20)) +
-   theme(panel.background = element_rect(fill='transparent'),
-         plot.background = element_rect(fill='transparent', color=NA))
+        axis.text.y = element_text(size = 20))
 # m1_rd1_comm
 
 ## Round 2
@@ -1223,8 +1160,6 @@ m1_rd2_comm <- make_matrix_rd2(
   title = "", 
   legendpos ="") +
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
-  theme(panel.background = element_rect(fill='transparent'),
-        plot.background = element_rect(fill='transparent', color=NA)) +
   scale_x_discrete(labels=age_labels) +
   theme(axis.title.y = element_blank(),
         axis.text.y = element_blank(),
@@ -1243,10 +1178,7 @@ m1_rd3_comm <- make_matrix_rd3(
   theme(axis.title.x = element_text(size = 25),
         axis.text.x = element_text(size = 20),
         axis.title.y = element_blank(),
-        axis.text.y = element_blank()) +
-  theme(panel.background = element_rect(fill='transparent'),
-        plot.background = element_rect(fill='transparent', color=NA))
-  
+        axis.text.y = element_blank())
 # m1_rd3_comm
 
 # Round 4
@@ -1255,54 +1187,26 @@ m1_rd4_comm <- make_matrix_rd4(
     filter(contact_location=="Community"),
   title = "", 
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
-            color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
   scale_x_discrete(labels=age_labels) +
   theme(axis.title.x = element_text(size = 25),
         axis.text.x = element_text(size = 20),
         axis.title.y = element_blank(),
-        axis.text.y = element_blank()) +
-  theme(panel.background = element_rect(fill='transparent'),
-        plot.background = element_rect(fill='transparent', color=NA))
-
+        axis.text.y = element_blank())
 # m1_rd4_comm
-legend_b <- get_legend(m1_rd4_comm +
-                          guides(color = guide_legend(nrow = 1)) +
-                          theme(legend.position = "bottom",
-                                legend.justification = "right"))
-# legend_b <- get_legend(
-#   m1_rd4_comm + 
-#     guides(color = guide_legend(nrow = 1)) +
-#     theme(legend.position = "bottom")
 
-m_location <- plot_grid(NULL, m1_rd1_work, m1_rd2_work, m1_rd3_work, m1_rd4_work,
-                        NULL, m1_rd1_home, m1_rd2_home, m1_rd3_home, m1_rd4_home, 
-                        NULL, m1_rd1_comm, m1_rd2_comm, m1_rd3_comm, m1_rd4_comm,
-                        NULL, NULL, legend_b, NULL,
-                        nrow=4, ncol=5, align="hv",
-                        rel_widths=c(.2, 1.1, 0.85, 0.85, 0.85), rel_heights=c(1,1,1.1,0.2), scale=0.9,
-                        labels = c('Work','','','', '',
-                                   'Home', '', '', '', '',
-                                   'Community', '', '', '', '',
-                                   '', '', '', '',''),
-                        label_size=30, bg='transparent')
 
-# m_location <- plot_grid(NULL, m1_rd1_work, m1_rd2_work, m1_rd3_work, m1_rd4_work, legend_m1,
-#                         NULL, m1_rd1_home, m1_rd2_home, m1_rd3_home, m1_rd4_home, NULL,
-#                         NULL, m1_rd1_comm, m1_rd2_comm, m1_rd3_comm, m1_rd4_comm, NULL,
-#                         nrow=3, ncol=6, align="hv",
-#                         rel_widths=c(.2, 1.2, 1, 1, 1, .2), rel_heights=c(1,1,1.2), scale=0.9,
-#                         labels = c('Work','','','', '', '',
-#                                    'Home', '', '', '', '','',
-#                                    'Community', '', '', '', '',''),
-#                         label_size=30, bg='transparent')
+m_location <- plot_grid(m1_rd1_work, m1_rd2_work, m1_rd3_work, m1_rd4_work, legend_m1,
+                        m1_rd1_home, m1_rd2_home, m1_rd3_home, m1_rd4_home, NULL,
+                        m1_rd1_comm, m1_rd2_comm, m1_rd3_comm, m1_rd4_comm, NULL,
+                        nrow=3, ncol=5, align="hv", 
+                        rel_widths=c(1.4,1,1,1,.2), rel_heights=c(1,1,1.2), scale=0.95)
 
 print(m_location)
-
 ```
 
-```{r, include=FALSE}
-pdf("../output/figs/matrix_location_all.pdf", width=24, height=18)
+```{r, include=FALSE, fig.width = 20, fig.height = 16}
+tiff("../output/day1_only/matrix_location_all.tiff", units="in", res=75)
 m_location
 dev.off()
 ```
@@ -1312,8 +1216,8 @@ dev.off()
 # matrix dataframes
 ## Round 1
 df_m1_rd1 <- rd1 %>%
-  dplyr::group_by(participant_age, contact_age) %>%
-  dplyr::summarize(tot_contacts = n(), .groups = "drop") %>%
+  group_by(participant_age, contact_age) %>%
+  dplyr::summarize(tot_contacts = n()) %>%
   full_join(standard_str, by = c("participant_age","contact_age"), keep=F) %>%
   left_join(num_participants_rd1, by="participant_age") %>%
   mutate(avg_cont = (tot_contacts/n)) %>%
@@ -1321,8 +1225,8 @@ df_m1_rd1 <- rd1 %>%
 
 ## Round 2
 df_m1_rd2 <- rd2 %>%
-  dplyr::group_by(participant_age, contact_age) %>%
-  dplyr::summarize(tot_contacts = n(), .groups = "drop") %>%
+  group_by(participant_age, contact_age) %>%
+  dplyr::summarize(tot_contacts = n()) %>%
   full_join(standard_str, by = c("participant_age","contact_age"), keep=F) %>%
   left_join(num_participants_rd1, by="participant_age") %>%
   mutate(avg_cont = (tot_contacts/n)) %>%
@@ -1330,8 +1234,8 @@ df_m1_rd2 <- rd2 %>%
 
 ## Round 3
 df_m1_rd3 <- rd3 %>%
-  dplyr::group_by(participant_age, contact_age) %>%
-  dplyr::summarize(tot_contacts = n(), .groups = "drop") %>%
+  group_by(participant_age, contact_age) %>%
+  dplyr::summarize(tot_contacts = n()) %>%
   full_join(standard_str, by = c("participant_age","contact_age"), keep=F) %>%
   left_join(num_participants_rd1, by="participant_age") %>%
   mutate(avg_cont = (tot_contacts/n)) %>%
@@ -1339,8 +1243,8 @@ df_m1_rd3 <- rd3 %>%
 
 ## Round 4
 df_m1_rd4 <- rd4 %>%
-  dplyr::group_by(participant_age, contact_age) %>%
-  dplyr::summarize(tot_contacts = n(), .groups = "drop") %>%
+  group_by(participant_age, contact_age) %>%
+  dplyr::summarize(tot_contacts = n()) %>%
   full_join(standard_str, by = c("participant_age","contact_age"), keep=F) %>%
   left_join(num_participants_rd1, by="participant_age") %>%
   mutate(avg_cont = (tot_contacts/n)) %>%
@@ -1468,7 +1372,7 @@ colnames(m_rd4_w) <- col_names
 ### Difference matrices among employees only
 ```{r difference_matrix, warning=FALSE, echo=FALSE, comment = NA, fig.width = 18, fig.height = 14}
 # round 1-2
-diff1 <- m_rd2 - m_rd1
+diff1 <- m_rd2_w - m_rd1_w
 colnames(diff1) <- col_names
 rownames(diff1) <- row_names
 
@@ -1482,12 +1386,11 @@ diff_matr1 <- diff1 %>%
   filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
   ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
   geom_raster() +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
-            color = "black", size = 8) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 8) +
   theme_classic() +
-  scale_fill_gradient2(low="blue", mid="white", high="purple", 
-                       limits=c(-4, 4), breaks=(c(-4,-2,0,2,4))) +
-  labs(fill = "Average \ncontact") +
+  scale_fill_gradient(low="white", high="blue", limits=c(-2, 4), breaks=(c(-2,0,2,4))) +
+  # scale_y_continuous(limits = c(-2, 2)) +
+  labs(fill = "Avg \ncontact") +
   xlab("") + 
   ylab("Contact age") +
   ggtitle("A. Round 1 - 2") +
@@ -1517,11 +1420,10 @@ diff_matr2 <- diff2 %>%
   filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
   ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
   geom_raster() +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
-            color = "black", size = 8) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 8) +
   theme_classic() +
-  scale_fill_gradient2(low="blue", mid="white", high="purple", 
-                       limits=c(-4, 4), breaks=(c(-4,-2,0,2,4))) +
+  scale_fill_gradient(low="white", high="blue", limits=c(-1, 4), breaks=(c(-2,0,2,4))) +
+  # scale_y_continuous(limits = c(-2, 2)) +
   xlab("") + 
   ylab("") +
   ggtitle("B. Round 2 - 3") +
@@ -1551,11 +1453,10 @@ diff_matr3 <- diff3 %>%
   filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
   ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
   geom_raster() +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
-            color = "black", size = 8) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 8) +
   theme_classic() +
-  scale_fill_gradient2(low="blue", mid="white", high="purple", 
-                       limits=c(-4, 4), breaks=(c(-4,-2,0,2,4))) +
+  scale_fill_gradient(low="white", high="blue", limits=c(-2, 4), breaks=(c(-2,0,2,4))) +
+  # scale_y_continuous(limits = c(-2, 2)) +
   xlab("Participant age") + 
   ylab("Contact age") +
   ggtitle("C. Round 3 - 4") +
@@ -1585,14 +1486,13 @@ diff_matr4 <- diff4 %>%
   filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
   ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
   geom_raster() +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
-            color = "black", size = 8) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 8) +
   theme_classic() +
-  scale_fill_gradient2(low="blue", mid="white", high="purple", 
-                       limits=c(-4, 4), breaks=(c(-4,-2,0,2,4))) +
+  scale_fill_gradient(low="white", high="blue", limits=c(-2, 4), breaks=(c(-2,0,2,4))) +
+  # scale_y_continuous(limits = c(-2, 2)) +
   xlab("Participant age") + 
   ylab("") +
-  ggtitle("D. Round 1 - 4 (Overall)") +
+  ggtitle("D. Round 1 - 4") +
   theme(legend.title = element_text(size = 18),
         legend.text = element_text(size = 18),
         legend.justification = "right",
@@ -1604,6 +1504,14 @@ diff_matr4 <- diff4 %>%
         axis.text.y = element_text(size= 24))
 # diff_matr4
 
+
+# matr4 <- make_diff_matrix(
+#   diff4 %>%
+#     filter(!is.na(contact_age)), # Remove those without contact age
+#   replace(is.na(.), 0),
+#   title = "1-4",
+#   legendpos ="none")
+# matr4
 
 # get legend
 legend_mdiff <- get_legend(
@@ -1625,23 +1533,28 @@ print(diff_matrix)
 
 ```{r, include=FALSE}
 
-tiff("../output/figs/matrix_difference12.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/day1_only/matrix_difference12.tiff", units="in", width=6, height=6, res=150)
 diff_matr1
 dev.off()
 
-tiff("../output/figs/matrix_difference23.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/day1_only/matrix_difference23.tiff", units="in", width=6, height=6, res=150)
 diff_matr2
 dev.off()
 
-tiff("../output/figs/matrix_difference34.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/day1_only/matrix_difference34.tiff", units="in", width=6, height=6, res=150)
 diff_matr3
 dev.off()
 
-tiff("../output/figs/matrix_difference14.tiff", units="in", width=6, height=6, res=150)
+tiff("../output/day1_only/matrix_difference14.tiff", units="in", width=6, height=6, res=150)
 diff_matr4
 dev.off()
 
-tiff("../output/figs/matrix_difference_all.tiff", units="in", width=18, height=14, res=75)
+tiff("../output/day1_only/matrix_difference_all.tiff", units="in", width=18, height=14, res=75)
 diff_matrix
 dev.off()
+```
+
+```{r q_index, include=FALSE}
+# Q_rd1 <- sum(diag(df_m1_rd1$P))-1)/(dim(z$P)[1]-1)
+
 ```

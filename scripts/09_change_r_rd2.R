@@ -10,7 +10,7 @@ df_rd2 <- readRDS("data/df_merged_rd2.RDS")
 ## Make participant and contact data frames into format that can be inputted into socialmixr packge
 df_rd2 <- df_rd2 %>% 
   ungroup() %>%
-  group_by(email) %>%
+  group_by(id) %>%
   mutate(part_id=cur_group_id()) %>%  ## unique id for each participant
   ungroup() %>%
   mutate(cont_id = 1:n(),## unique id for each contact
