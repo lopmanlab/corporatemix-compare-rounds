@@ -1,1 +1,5 @@
-# corporatemix-compare-rounds
+# Changing social contact patterns among US workers during the COVID-19 pandemic: April 2020 to December 2021
+
+## Abstract
+
+Non-pharmaceutical interventions minimize social contacts, hence the spread of SARS-CoV-2. We quantified two-day contact patterns among USA employees from 2020–2021 during the COVID-19 pandemic. Contacts were defined as face-to-face conversations, involving physical touch or proximity to another individual and were collected using electronic diaries. Mean (standard deviation) contacts reported by 1,456 participants were 2.5 (2.5), 8.2 (7.1), 9.2 (7.1) and 10.1 (9.5) across round 1 (April–June 2020), 2 (November 2020–January 2021), 3 (June–August 2021), and 4 (November–December 2021), respectively. Between round 1 and 2, we report a 3-fold increase in the mean number of contacts reported per participant with no major increases from round 2–4. We modeled SARS-CoV-2 transmission at home, work, and community. The model revealed reduced relative transmission in all settings in round 1. Subsequently, transmission increased at home and in the community but remained very low in work settings. Contact data are important to parameterize models of infection transmission and control.
