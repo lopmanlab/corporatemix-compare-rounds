@@ -41,7 +41,6 @@ ggplot(df, aes(value, fill = round)) + geom_density() +
   xlab("Relative transmissability due to contact changes compared to pre-pandemic")+
   ylab("Density") 
 
-brewer.pal(n=4,"Blues")
 ```
 
 ```{r}
