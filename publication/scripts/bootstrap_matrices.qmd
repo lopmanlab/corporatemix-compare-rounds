@@ -1,0 +1,401 @@
+---
+title: "Bootstrapped contact matrices for CorporateMix"
+format: html
+editor: source
+---
+
+```{r}
+#| warning: false
+
+df_all <- readRDS("../../publication/data/df_all.RDS")
+
+##### Weighting
+### age categories to join with population weighting
+df_all <- df_all %>% 
+  mutate(weight_cat = participant_age,
+         study_site = "USA")
+
+df_all <- df_all %>% 
+  mutate(part_age = as.character(participant_age),
+         age_cont = as.character(contact_age),
+         
+         cnt_age_est_min = case_when( 
+           ## If dont have exact contact age, 
+           ## need to specify a minimum and maximum based on the age group range
+           contact_age == "0-9" ~ 0,
+           contact_age == "10-19" ~ 10,
+           contact_age == "20-29" ~ 20,
+           contact_age == "30-39" ~ 30,
+           contact_age == "40-59"~ 40,
+           contact_age == "60+"~ 60,
+           is.na(contact_age) ~ NA_real_),
+         
+         cnt_age_est_max= case_when(
+           contact_age == "0-9" ~ 9,
+           contact_age == "10-19"~ 19,
+           contact_age == "20-29" ~ 29,
+           contact_age == "30-39" ~ 39,
+           contact_age == "40-59"~ 59,
+           contact_age == "60+"~ 99,
+           is.na(contact_age) ~ NA_real_)
+  ) 
+
+# read in population distribution
+pop_dist <- read.csv("../../publication/data/us_company_weights_052021.csv") %>%
+  mutate(study_site = "USA")
+
+```
+
+# Round 1
+```{r}
+#| warnings: false
+#| echo: false
+#| label: fig-round1-matrix
+
+
+# weight cleaning for rd1
+df_rd1 <- df_all %>%
+  filter(round == "One")
+  
+pop_weight_rd1 <- df_rd1 %>%
+  select(participant_id, study_site, weight_cat) %>% 
+  unique() %>%
+  group_by(study_site, weight_cat) %>%
+  summarise(n=n())
+usa_pop <- sum(pop_dist$n_employees)
+
+pop_weight_rd1 <- pop_weight_rd1 %>% 
+  left_join(pop_dist, by = c("weight_cat"="age_cat", "study_site"="study_site")) %>%
+  mutate(pop = usa_pop,
+         tot_n = sum(n)) %>%
+  mutate(part_weight = (n_employees/pop)/(n/tot_n))
+
+## join weights into participants data
+df_rd1 <- df_rd1 %>%
+  left_join(pop_weight_rd1 %>% select(study_site, weight_cat, part_weight),
+            by = c("study_site"="study_site", "weight_cat"="weight_cat"))
+
+
+### Create survey structures for input into socialmixr package
+
+df_rd1 <- survey(
+  participants = df_rd1 %>% 
+    select(participant_id, participant_age, part_weight) %>% 
+    mutate(part_id = participant_id,
+           part_age = as.character(participant_age)) %>%
+    unique()%>%
+    rename(weights = part_weight) %>%
+    mutate(country=rep("USA"),
+           year=rep(2022)),
+  
+  contacts = df_rd1 %>%
+    select(participant_id, cnt_age_est_min, cnt_age_est_max) %>% #, cnt_home:cnt_otherplace)
+    rename(part_id = participant_id)
+    
+)
+
+
+##### Creating matrices
+
+### urban
+m_rd1 <- contact_matrix(df_rd1, 
+                        age.limits = c(0,10,20,30,40,60,99), ##Specify age bands for the matrix
+                        symmetric=F,  ##symmetric matrix
+                        missing.participant.age = "remove",
+                        missing.contact.age = "sample", 
+                        estimated.contact.age = "sample",  
+                        ##what to do if missing contact age group, use sample with bootstraping
+                        weigh.age = T,
+                        return.part.weights=T,
+                        n=1000)     ##Number of bootstraps
+
+# Code to take the mean of matrices
+m_rd1_fin <- Reduce("+", lapply(m_rd1$matrices, function(x) {x$matrix})) / length(m_rd1$matrices)
+
+#Make into long form
+mat_rd1 <- reshape2::melt(m_rd1_fin, varnames = c("age1", "age_cont"), value.name = "contacts") %>%
+  left_join(data.frame(age1 = as.character(c(1,2,3,4,5,6)),
+                       age_part = c("[0,10)","[10,20)","[20,30)","[30,40)","[40,59)","60+")),
+            by="age1")
+
+## plot graph
+plot_mat_rd1 <- ggplot(mat_rd1, aes(x = age1, y = age_cont, fill = contacts)) + 
+  scale_fill_gradient2(low = "#2b83ba", mid = "#abdda4", high = "#ffffbf", midpoint = 2.5, limit = c(0,5))+
+  xlab("Age of participant") + ylab("Age of contact")+
+  geom_tile() +
+  geom_text(aes(label = round(contacts, digits=2)), 
+            colour = "black", check_overlap = TRUE)+
+  theme_half_open()  +
+  theme(legend.position = "none")
+
+```
+
+# Round 2
+```{r}
+#| warnings: false
+#| echo: false
+#| label: fig-round1-matrix
+
+
+# weight cleaning for rd2
+df_rd2 <- df_all %>%
+  filter(round == "Two")
+  
+pop_weight_rd2 <- df_rd2 %>%
+  select(participant_id, study_site, weight_cat) %>% 
+  unique() %>%
+  group_by(study_site, weight_cat) %>%
+  summarise(n=n())
+usa_pop <- sum(pop_dist$n_employees)
+
+pop_weight_rd2 <- pop_weight_rd2 %>% 
+  left_join(pop_dist, by = c("weight_cat"="age_cat", "study_site"="study_site")) %>%
+  mutate(pop = usa_pop,
+         tot_n = sum(n)) %>%
+  mutate(part_weight = (n_employees/pop)/(n/tot_n))
+
+## join weights into participants data
+df_rd2 <- df_rd2 %>%
+  left_join(pop_weight_rd2 %>% select(study_site, weight_cat, part_weight),
+            by = c("study_site"="study_site", "weight_cat"="weight_cat"))
+
+
+### Create survey structures for input into socialmixr package
+df_rd2 <- survey(
+  participants = df_rd2 %>% 
+    select(participant_id, participant_age, part_weight) %>% 
+    mutate(part_id = participant_id,
+           part_age = as.character(participant_age)) %>%
+    unique()%>%
+    rename(weights = part_weight) %>%
+    mutate(country=rep("USA"),
+           year=rep(2022)),
+  
+  contacts = df_rd2 %>%
+    select(participant_id, cnt_age_est_min, cnt_age_est_max) %>% #, cnt_home:cnt_otherplace)
+    rename(part_id = participant_id)
+    
+)
+
+
+##### Creating matrix
+m_rd2 <- contact_matrix(df_rd2, 
+                        age.limits = c(0,10,20,30,40,60,99), ## Specify age bands for the matrix
+                        symmetric=F,  ##symmetric matrix
+                        # missing.participant.age = "remove",
+                        missing.contact.age = "sample", 
+                        estimated.contact.age = "sample",  
+                        ## what to do if missing contact age group, use sample with bootstraping
+                        weigh.age = T,
+                        return.part.weights=T,
+                        n=1000) ## Number of bootstraps
+
+# Code to take the mean of matrices
+m_rd2_fin <- Reduce("+", lapply(m_rd2$matrices, function(x) {x$matrix})) / length(m_rd2$matrices)
+
+#Make into long form
+mat_rd2 <- reshape2::melt(m_rd2_fin, varnames = c("age1", "age_cont"), value.name = "contacts") %>%
+  left_join(data.frame(age1 = as.character(c(1,2,3,4,5,6)),
+                       age_part = c("[0,10)","[10,20)","[20,30)","[30,40)","[40,59)","60+")),
+            by="age1")
+
+## plot graph
+plot_mat_rd2 <- ggplot(mat_rd2, aes(x = age1, y = age_cont, fill = contacts)) + 
+  scale_fill_gradient2(low = "#2b83ba", mid = "#abdda4", high = "#ffffbf", 
+                       midpoint = 2.5, limit = c(0,5))+
+  xlab("Age of participant") + ylab("Age of contact")+
+  geom_tile() +
+  geom_text(aes(label = round(contacts, digits=1)), 
+            colour = "black", check_overlap = TRUE)+
+  theme_half_open()  +
+  theme(legend.position = "none")
+
+```
+
+# Round 3
+```{r}
+#| warnings: false
+#| echo: false
+#| label: fig-round1-matrix
+
+
+# weight cleaning for rd3
+df_rd3 <- df_all %>%
+  filter(round == "Two")
+  
+pop_weight_rd3 <- df_rd3 %>%
+  select(participant_id, study_site, weight_cat) %>% 
+  unique() %>%
+  group_by(study_site, weight_cat) %>%
+  summarise(n=n())
+usa_pop <- sum(pop_dist$n_employees)
+
+pop_weight_rd3 <- pop_weight_rd3 %>% 
+  left_join(pop_dist, by = c("weight_cat"="age_cat", "study_site"="study_site")) %>%
+  mutate(pop = usa_pop,
+         tot_n = sum(n)) %>%
+  mutate(part_weight = (n_employees/pop)/(n/tot_n))
+
+## join weights into participants data
+df_rd3 <- df_rd3 %>%
+  left_join(pop_weight_rd3 %>% select(study_site, weight_cat, part_weight),
+            by = c("study_site"="study_site", "weight_cat"="weight_cat"))
+
+
+### Create survey structures for input into socialmixr package
+df_rd3 <- survey(
+  participants = df_rd3 %>% 
+    select(participant_id, participant_age, part_weight) %>% 
+    mutate(part_id = participant_id,
+           part_age = as.character(participant_age)) %>%
+    unique()%>%
+    rename(weights = part_weight) %>%
+    mutate(country=rep("USA"),
+           year=rep(2022)),
+  
+  contacts = df_rd3 %>%
+    select(participant_id, cnt_age_est_min, cnt_age_est_max) %>% #, cnt_home:cnt_otherplace)
+    rename(part_id = participant_id)
+    
+)
+
+
+##### Creating matrix
+m_rd3 <- contact_matrix(df_rd3, 
+                        age.limits = c(0,10,20,30,40,60,99), ##Specify age bands for the matrix
+                        symmetric=F,  ##symmetric matrix
+                        missing.participant.age = "remove",
+                        missing.contact.age = "sample", 
+                        estimated.contact.age = "sample",  
+                        ##what to do if missing contact age group, use sample with bootstraping
+                        weigh.age = T,
+                        return.part.weights=T,
+                        n=1000)     ##Number of bootstraps
+
+# Code to take the mean of matrices
+m_rd3_fin <- Reduce("+", lapply(m_rd3$matrices, function(x) {x$matrix})) / length(m_rd3$matrices)
+
+#Make into long form
+mat_rd3 <- reshape2::melt(m_rd3_fin, varnames = c("age1", "age_cont"), value.name = "contacts") %>%
+  left_join(data.frame(age1 = as.character(c(1,2,3,4,5,6)),
+                       age_part = c("[0,10)","[10,20)","[20,30)","[30,40)","[40,59)","60+")),
+            by="age1")
+
+## plot graph
+plot_mat_rd3 <- ggplot(mat_rd3, aes(x = age1, y = age_cont, fill = contacts)) + 
+  scale_fill_gradient2(low = "#2b83ba", mid = "#abdda4", high = "#ffffbf", 
+                       midpoint = 2.5, limit = c(0,5))+
+  xlab("Age of participant") + ylab("Age of contact")+
+  geom_tile() +
+  geom_text(aes(label = round(contacts, digits=1)), 
+            colour = "black", check_overlap = TRUE)+
+  theme_half_open()  +
+  theme(legend.position = "none")
+
+```
+
+# Round 4
+```{r}
+#| warnings: false
+#| echo: false
+#| label: fig-round1-matrix
+
+
+# weight cleaning for rd3
+df_rd4 <- df_all %>%
+  filter(round == "Two")
+  
+pop_weight_rd4 <- df_rd4 %>%
+  select(participant_id, study_site, weight_cat) %>% 
+  unique() %>%
+  group_by(study_site, weight_cat) %>%
+  summarise(n=n())
+usa_pop <- sum(pop_dist$n_employees)
+
+pop_weight_rd4 <- pop_weight_rd4 %>% 
+  left_join(pop_dist, by = c("weight_cat"="age_cat", "study_site"="study_site")) %>%
+  mutate(pop = usa_pop,
+         tot_n = sum(n)) %>%
+  mutate(part_weight = (n_employees/pop)/(n/tot_n))
+
+## join weights into participants data
+df_rd4 <- df_rd4 %>%
+  left_join(pop_weight_rd4 %>% select(study_site, weight_cat, part_weight),
+            by = c("study_site"="study_site", "weight_cat"="weight_cat"))
+
+
+### Create survey structures for input into socialmixr package
+df_rd4 <- survey(
+  participants = df_rd4 %>% 
+    select(participant_id, participant_age, part_weight) %>% 
+    mutate(part_id = participant_id,
+           part_age = as.character(participant_age)) %>%
+    unique()%>%
+    rename(weights = part_weight) %>%
+    mutate(country=rep("USA"),
+           year=rep(2022)),
+  
+  contacts = df_rd4 %>%
+    select(participant_id, cnt_age_est_min, cnt_age_est_max) %>% #, cnt_home:cnt_otherplace)
+    rename(part_id = participant_id)
+    
+)
+
+
+##### Creating matrix
+m_rd4 <- contact_matrix(df_rd4, 
+                        age.limits = c(0,10,20,30,40,60,99), ##Specify age bands for the matrix
+                        symmetric=F,  ##symmetric matrix
+                        missing.participant.age = "remove",
+                        missing.contact.age = "sample", 
+                        estimated.contact.age = "sample",  
+                        ##what to do if missing contact age group, use sample with bootstraping
+                        weigh.age = T,
+                        return.part.weights=T,
+                        n=1000)     ##Number of bootstraps
+
+# Code to take the mean of matrices
+m_rd4_fin <- Reduce("+", lapply(m_rd4$matrices, function(x) {x$matrix})) / length(m_rd4$matrices)
+
+#Make into long form
+mat_rd4 <- reshape2::melt(m_rd4_fin, varnames = c("age1", "age_cont"), value.name = "contacts") %>%
+  left_join(data.frame(age1 = as.character(c(1,2,3,4,5,6)),
+                       age_part = c("[0,10)","[10,20)","[20,30)","[30,40)","[40,59)","60+")),
+            by="age1")
+
+## plot graph
+plot_mat_rd4 <- ggplot(mat_rd4, aes(x = age1, y = age_cont, fill = contacts)) + 
+  scale_fill_gradient2(low = "#2b83ba", mid = "#abdda4", high = "#ffffbf", 
+                       midpoint = 2.5, limit = c(0,5)) +
+  xlab("Age of participant") + ylab("Age of contact") +
+  geom_tile() +
+  geom_text(aes(label = round(contacts, digits=1)), 
+            colour = "black", check_overlap = TRUE) +
+  theme_half_open() +
+  theme(legend.position = "none")
+
+
+plot_mat_rd4
+```
+
+
+```{r}
+#| label: fig-final-matrix
+
+# get legend
+legend_mat <- get_legend(plot_mat_rd4 +
+                       guides(color = guide_legend(nrow = 1)) +
+                       theme(legend.position = "right",
+                             legend.justification = "left"))
+
+mat_all <- plot_grid(plot_mat_rd1, plot_mat_rd2, legend_mat,
+                     plot_mat_rd3, plot_mat_rd4,
+          # labels = c("A","B","","C","D"),
+          # label_size = 22,
+          ncol=3, nrow=2, rel_widths=c(1.2,1.15,.2),
+          scale=0.95, align="hv")
+
+mat_all
+# need to remove x-axis text labels from rd1 and rd2, and y-axis text labels
+# from rd2 and rd4 graphs.
+```
