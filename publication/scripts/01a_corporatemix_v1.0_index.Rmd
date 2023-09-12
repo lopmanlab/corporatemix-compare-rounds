@@ -18,7 +18,9 @@ pacman::p_load("cowplot","dplyr","ggplot2", "ggpubr", "gridExtra", "gtsummary",
                "Hmisc", "kableExtra", "RColorBrewer", "reshape2",  
                 "socialmixr", "table1", "tidyverse")
 
-source("../../publication/scripts/00b_useful_functions.R")
+box_colors <-  c("#08519c","#3182bd","#6baed6","#bdd7e7") # c("#0868ac", "#43a2ca", "7bccc4", "#bae4bc" ) #c("#dfc27d", "#80cdc1", "#a6611a")
+
+source("../../publication/scripts/00_custom_functions.R")
 
 ```
 
@@ -144,7 +146,7 @@ df_allb$r4_contacts <- as.numeric(df_allb$r4_contacts)
 
 
 ```{r}
-list <- list(0)  ## empty list
+list <- list(0)  ## create empty list
 
 ## specify participant characteristic stratifications for cross tabs/analysis
 variables <- data.frame(var=c("participant_sex","participant_age_2", "family_structure",
@@ -154,10 +156,9 @@ variables <- data.frame(var=c("participant_sex","participant_age_2", "family_str
   mutate(var = as.character(var),
          name = as.character(name))
 
-# table(df_rd4b$participant_sex)
 
 for (i in 1:nrow(variables)){
-  x <- df_all[,variables$var[[i]]] # participant[,variables$var[[i]]]
+  x <- df_all[,variables$var[[i]]] 
   variables$var[[i]]
 
 # Number and proportion of participants in each strata
@@ -205,7 +206,7 @@ for (i in 1:nrow(variables)){
   #   print(out)
   # }
 
-  # because R1 has 3 companies compared to 5 in the others, we use qpcR:::cbind.na() to bind the columns, else we get an error.
+  # because R1 has 3 companies compared to 5 in the others, we use qpcR:::cbind.na() to bind the columns regardless of number of rows, else we get an error.
   t0<-qpcR:::cbind.na(t0, t1$med_contact, t2$med_contact, t3$med_contact, t4$med_contact) # Bind columns together
 
   t0<- t0[,c(1,2,3,4,5,6)]
@@ -234,9 +235,10 @@ res_restruct<- function(res){
 table_one <- res_restruct(list)
 colnames(table_one) <- c("Total (%)", "Round 1", "Round 2", "Round 3", "Round 4")
 
-kable(table_one, digits = 0, align = "r") %>%
+table_one <- kable(table_one, digits = 0, align = "r") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 
+table_one
 ```
 
 \
@@ -264,7 +266,6 @@ contacts_racehispanic <- df_all %>%
   dplyr::group_by(participant_id, racehispanic, round) %>%   # group by id and count number of contacts
   dplyr::summarize(num_contacts = n(), .groups = "drop")
 
-box_colors <-  c("#08519c","#3182bd","#6baed6","#bdd7e7") # c("#0868ac", "#43a2ca", "7bccc4", "#bae4bc" ) #c("#dfc27d", "#80cdc1", "#a6611a")
 
 box1 <- ggplot(contacts_age, aes(x = participant_age, y = num_contacts, fill=round))
 box1 <- box1 +
@@ -423,33 +424,72 @@ median_contacts_rounds <- contacts_location_round %>%
 
 ```
 
-```{r}
-meansd_rd1 <- day1_rd1 %>%
-  dplyr::summarize(mean = mean(num_contacts, na.rm = TRUE),
-            sd = sd(num_contacts, na.rm = TRUE),
-            .groups = "drop")
+```{r, echo=FALSE}
+
+# Define a function to calculate the mean and SD from a bootstrap sample
+bootstrap_mean <- function(data, indices) {
+  contact_data <- data[indices, ]
+  mean_val <- mean(contact_data$num_contacts, na.rm = TRUE)
+  sd_val <- sd(contact_data$num_contacts, na.rm = TRUE)
+  return(c(mean_val, sd_val))
+}
+
+# set seed for reproducibility
+set.seed(30322)
+
+# Conduct bootstrapping with 1000 replicates
+rd1_mean_bootstrap <- boot(data = day1_rd1, statistic = bootstrap_mean, R = 1000)
+
+rd1_mean <- mean(rd1_mean_bootstrap$t[, 1])
+rd1_sd <- sd(rd1_mean_bootstrap$t[, 2])
+rd1_ci <- boot.ci(rd1_mean_bootstrap, type = "basic")$basic
+
+# # old code to geberate mean and sd
+# meansd_rd1 <- day1_rd1 %>%
+#   dplyr::summarize(mean = mean(num_contacts, na.rm = TRUE),
+#                    sd = sd(num_contacts, na.rm = TRUE),
+#                    .groups = "drop")
   
-meansd_r2 <- df_all %>%
+rd2_mean <- df_all %>%
   filter(round=="Two") %>%
   dplyr::group_by(participant_id) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop") %>%
-  dplyr::summarize(mean = mean(num_contacts, na.rm = TRUE),
-            sd = sd(num_contacts, na.rm = TRUE), .groups = "drop")
+  dplyr::summarize(num_contacts = n(), .groups = "drop")
+  # dplyr::summarize(mean = mean(num_contacts, na.rm = TRUE),
+  #           sd = sd(num_contacts, na.rm = TRUE), .groups = "drop")
 
-meansd_r3 <- df_all %>%
+rd2_mean_bootstrap <- boot(data = rd2_mean, statistic = bootstrap_mean, R = 1000)
+rd2_mean <- mean(rd2_mean_bootstrap$t[, 1])
+rd2_sd <- sd(rd2_mean_bootstrap$t[, 2])
+rd2_ci <- boot.ci(rd2_mean_bootstrap, type = "basic")$basic
+
+
+rd3_mean <- df_all %>%
   filter(round=="Three") %>%
   dplyr::group_by(participant_id) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop") %>%
-  dplyr::summarize(mean = mean(num_contacts, na.rm = TRUE),
-            sd = sd(num_contacts, na.rm = TRUE), .groups = "drop")
+  dplyr::summarize(num_contacts = n(), .groups = "drop")
+  # dplyr::summarize(mean = mean(num_contacts, na.rm = TRUE),
+  #           sd = sd(num_contacts, na.rm = TRUE), .groups = "drop")
+rd3_mean_bootstrap <- boot(data = rd3_mean, statistic = bootstrap_mean, R = 1000)
+rd3_mean <- mean(rd3_mean_bootstrap$t[, 1])
+rd3_sd <- sd(rd3_mean_bootstrap$t[, 2])
+rd3_ci <- boot.ci(rd3_mean_bootstrap, type = "basic")$basic
 
-meansd_r4 <- df_all %>%
+
+rd4_mean <- df_all %>%
   filter(round=="Four") %>%
   dplyr::group_by(participant_id) %>%   # group by id and count number of contacts
-  dplyr::summarize(num_contacts = n(), .groups = "drop") %>%
-  dplyr::summarize(mean = mean(num_contacts, na.rm = TRUE),
-            sd = sd(num_contacts, na.rm = TRUE),
-            .groups = "drop")
+  dplyr::summarize(num_contacts = n(), .groups = "drop")
+  # dplyr::summarize(mean = mean(num_contacts, na.rm = TRUE),
+  #           sd = sd(num_contacts, na.rm = TRUE), .groups = "drop")
+rd4_mean_bootstrap <- boot(data = rd4_mean, statistic = bootstrap_mean, R = 1000)
+rd4_mean <- mean(rd4_mean_bootstrap$t[, 1])
+rd4_sd <- sd(rd4_mean_bootstrap$t[, 2])
+rd4_ci <- boot.ci(rd4_mean_bootstrap, type = "basic")$basic
+
+cat("The mean number of contacts in rd1 is", round(rd1_mean,1), "(95%CI", round(rd1_ci[4],1),"-",round(rd1_ci[5],1),")")
+cat("The mean number of contacts in rd2 is", round(rd2_mean,1), "(95%CI", round(rd2_ci[4],1),"-",round(rd2_ci[5],1),")")
+cat("The mean number of contacts in rd3 is", round(rd3_mean,1), "(95%CI", round(rd3_ci[4],1),"-",round(rd3_ci[5],1),")")
+cat("The mean number of contacts in rd4 is", round(rd4_mean,1), "(95%CI", round(rd4_ci[4],1),"-",round(rd4_ci[5],1),")")
 
 ```
 
@@ -536,28 +576,40 @@ test_rounds_34 <- kruskal.test(num_contacts ~ round,
                             data = test_rounds_34)
 # test_rounds
 
-# Visualization
-library("ggpubr")
-
-p1 <- ggbarplot(df_contacts_round, x = "round", y = "num_contacts",
-       add = c("median_q1q3"),
-       order = c("One", "Two", "Three", "Four"),
-       color = c("black"),
-       fill = box_colors,
-       ylab = "Number of contacts", xlab = "Round",
-       label=TRUE,
-       lab.vjust = -1.0, lab.hjust = -1.0,
-       position = position_dodge(0.1))
-# tiff("../output/figs/fig2_median_all_rounds.tiff", units="in", width=6, height=6, res=300)
-p1
-dev.off()
+# # Visualization
+# library("ggpubr")
+# 
+# p1 <- ggplot(df_contacts_round, aes(x = round, y = num_contacts, fill = round)) +
+#   geom_bar(stat = "identity", position = position_dodge(0.1)) +
+#   stat_summary(fun = "median", geom = "text", 
+#                aes(label = round(..y.., digits = 2), group = round),
+#                position = position_dodge(0.1), vjust = -0.5, color = "black", size = 3) +
+#   labs(x = "Round", y = "Number of contacts") +
+#   scale_fill_manual(values = box_colors) +
+#   theme_minimal() +
+#   theme(legend.position = "none")# +
+#   geom_text(aes(y = after_stat(y - 0.2)), vjust = 0, size = 3)  # Adjust text position
+# 
+# 
+# p1 <- ggbarplot(df_contacts_round, x = "round", y = "num_contacts",
+#        add = c("median_q1q3"),
+#        order = c("One", "Two", "Three", "Four"),
+#        color = c("black"),
+#        fill = box_colors,
+#        ylab = "Number of contacts", xlab = "Round",
+#        label=TRUE,
+#        lab.vjust = -1.0, lab.hjust = -1.0,
+#        position = position_dodge(0.1))
+# # tiff("../output/figs/fig2_median_all_rounds.tiff", units="in", width=6, height=6, res=300)
+# p1
+# # dev.off()
 # There is a significant difference in the mean contact values between round 1 and round 2 (Kruskal-Wallis rank sum test, p=`r test_rounds_12$p.value`) and round 2 and 3 (Kruskal-Wallis rank sum test, p=`r test_rounds_23$p.value`).
 
 ```
 \
 \
 ```{r}
-p1
+# p1
 ```
 The median (IQR) contact rates for round 1, 2,  3 and 4 were 
 `r summary_rounds$median[2]` (`r summary_rounds$q1[2]`, `r summary_rounds$q3[2]`),  
@@ -568,6 +620,43 @@ respectively.
 
 \
 \
+
+
+```{r}
+make_matrix_rd2 <- function(df1, title, txt_size = 12, mid = 2.5, max = 5.0, legendpos = "top", n_bootstrap = 1000, alpha = 0.05) {
+  df1 %>%
+    group_by(participant_age, contact_age) %>%
+    dplyr::summarize(tot_contacts = n()) %>%
+    full_join(standard_str, by = c("participant_age", "contact_age"), keep = FALSE) %>%
+    replace(is.na(.), 0) %>%
+    left_join(num_participants_rd2, by = "participant_age") %>%
+    mutate(avg_cont = (tot_contacts / n),
+           avg_cont = replace_na(avg_cont, 0),
+           avg_cont = na_if(avg_cont, 0)) %>%
+    na.omit() %>%
+    group_by(participant_age) %>%
+    # print() %>%
+    boot::boot(data = ., statistic = function(data, indices) {
+      sample_data <- data[indices, ]
+      mean_avg_cont <- mean(sample_data$avg_cont)
+      return(mean_avg_cont)
+    }, R = n_bootstrap) %>%
+    boot::boot.ci(type = "bca", conf = 1 - alpha)  %>%
+    print(.$bca)
+}
+    # as.data.frame() %>%
+    # pivot_wider(names_from = Statistic, values_from = c("2.5 %", "97.5 %")) %>%
+    mutate(avg_cont = round(Statistic.Mean, 2),
+           lower_ci = round(`2.5 %`, 2),
+           upper_ci = round(`97.5 %`, 2)) %>%
+    select(participant_age, avg_cont, lower_ci, upper_ci) %>%
+    contactmatrix_viz(title = title, txt_size = txt_size, mid = mid, max = max, legendpos = legendpos)
+}
+
+# Usage example:
+result <- make_matrix_rd2(df_rd2_temp, title = "Matrix Title")
+print(result)
+```
 
 ### Matrices by study round
 ```{r graphs3, warning=FALSE, echo=FALSE, comment = NA, fig.width = 18, fig.height = 14}
