@@ -622,7 +622,7 @@ respectively.
 \
 
 
-```{r}
+```{r, eval=FALSE}
 make_matrix_rd2 <- function(df1, title, txt_size = 12, mid = 2.5, max = 5.0, legendpos = "top", n_bootstrap = 1000, alpha = 0.05) {
   df1 %>%
     group_by(participant_age, contact_age) %>%
@@ -827,7 +827,8 @@ m1_rd2_work <- make_matrix_rd2(
     filter(contact_location=="Work"),
   title = "", 
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 5) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
@@ -843,7 +844,8 @@ m1_rd3_work <- make_matrix_rd3(
     filter(contact_location=="Work"),
   title = "", 
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 5) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
@@ -859,7 +861,8 @@ m1_rd4_work <- make_matrix_rd4(
     filter(contact_location=="Work"),
   title = "", 
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 5) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.y = element_blank(),
@@ -876,7 +879,8 @@ m1_rd1_home <- make_matrix_rd1(
     filter(contact_location=="Home"),
   title = "",
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 5) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.text.y = element_text(size = 20),
@@ -891,7 +895,8 @@ m1_rd2_home <- make_matrix_rd2(
     filter(contact_location=="Home"),
   title = "", 
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 5) +
   theme(panel.background = element_rect(fill='transparent'),
         plot.background = element_rect(fill='transparent', color=NA)) +
   theme(axis.title.x = element_blank(),
@@ -906,7 +911,8 @@ m1_rd3_home <- make_matrix_rd3(
     filter(contact_location=="Home"),
   title = "", 
   legendpos ="")  +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 5) +
   theme(panel.background = element_rect(fill='transparent'),
         plot.background = element_rect(fill='transparent', color=NA)) +
   theme(axis.title.x = element_blank(),
@@ -921,7 +927,8 @@ m1_rd4_home <- make_matrix_rd4(
     filter(contact_location=="Home"),
   title = "", 
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +    
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 5) +    
   theme(panel.background = element_rect(fill='transparent'),
         plot.background = element_rect(fill='transparent', color=NA)) +
   theme(axis.title.x = element_blank(),
@@ -937,7 +944,8 @@ m1_rd1_comm <- make_matrix_rd1(
     filter(contact_location=="Community"),
   title = "",
   legendpos ="")  +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 5) +
   scale_x_discrete(labels=age_labels) +
   theme(axis.title.x = element_text(size = 25),
         axis.text.x = element_text(size = 20),
@@ -953,7 +961,8 @@ m1_rd2_comm <- make_matrix_rd2(
     filter(contact_location=="Community"),
   title = "", 
   legendpos ="") +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 5) +
   theme(panel.background = element_rect(fill='transparent'),
         plot.background = element_rect(fill='transparent', color=NA)) +
   scale_x_discrete(labels=age_labels) +
@@ -969,7 +978,8 @@ m1_rd3_comm <- make_matrix_rd3(
     filter(contact_location=="Community"),
   title = "", 
   legendpos ="")  +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), color = "black", size = 5) +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 5) +
   scale_x_discrete(labels=age_labels) +
   theme(axis.title.x = element_text(size = 25),
         axis.text.x = element_text(size = 20),
@@ -1034,7 +1044,7 @@ df_m1_rd1 <- rd1 %>%
   dplyr::summarize(tot_contacts = n(), .groups = "drop") %>%
   full_join(standard_str, by = c("participant_age","contact_age"), keep=F) %>%
   left_join(num_participants_rd1, by="participant_age") %>%
-  mutate(avg_cont = (tot_contacts/n)) %>%
+  mutate(avg_cont = round((tot_contacts/n),1)) %>%
   replace(is.na(.), 0)
 
 ## Round 2
@@ -1042,8 +1052,8 @@ df_m1_rd2 <- rd2 %>%
   dplyr::group_by(participant_age, contact_age) %>%
   dplyr::summarize(tot_contacts = n(), .groups = "drop") %>%
   full_join(standard_str, by = c("participant_age","contact_age"), keep=F) %>%
-  left_join(num_participants_rd1, by="participant_age") %>%
-  mutate(avg_cont = (tot_contacts/n)) %>%
+  left_join(num_participants_rd2, by="participant_age") %>%
+  mutate(avg_cont = round((tot_contacts/n),1)) %>%
   replace(is.na(.), 0)
 
 ## Round 3
@@ -1051,8 +1061,8 @@ df_m1_rd3 <- rd3 %>%
   dplyr::group_by(participant_age, contact_age) %>%
   dplyr::summarize(tot_contacts = n(), .groups = "drop") %>%
   full_join(standard_str, by = c("participant_age","contact_age"), keep=F) %>%
-  left_join(num_participants_rd1, by="participant_age") %>%
-  mutate(avg_cont = (tot_contacts/n)) %>%
+  left_join(num_participants_rd3, by="participant_age") %>%
+  mutate(avg_cont = round((tot_contacts/n),1)) %>%
   replace(is.na(.), 0)
 
 ## Round 4
@@ -1060,125 +1070,194 @@ df_m1_rd4 <- rd4 %>%
   dplyr::group_by(participant_age, contact_age) %>%
   dplyr::summarize(tot_contacts = n(), .groups = "drop") %>%
   full_join(standard_str, by = c("participant_age","contact_age"), keep=F) %>%
-  left_join(num_participants_rd1, by="participant_age") %>%
-  mutate(avg_cont = (tot_contacts/n)) %>%
+  left_join(num_participants_rd4, by="participant_age") %>%
+  mutate(avg_cont = round((tot_contacts/n),1)) %>%
   replace(is.na(.), 0)
 
 ```
 
 
-### Difference matrices among employees only
-```{r weighted_matrix_dfs, warning=FALSE, echo=FALSE, comment = NA, fig.width = 18, fig.height = 14}
 
-# employee weighted population data
-employee_pop <- read_csv("../../publication/data/us_company_weights_052021.csv",
-                            col_types = cols())
-# select(age_cat, p_age, age_weight) %>%
-employee_pop <-  as.numeric(employee_pop$n_employees)
+### Difference matrices
+```{r difference_matrix, warning=FALSE, echo=FALSE, comment = NA, fig.width = 18, fig.height = 14}
 
-col_names <- c("60+","40-59","30-39","20-29","10-19","0-9")
-row_names <- c("60+","40-59","30-39","20-29","10-19","0-9")
+# round 2-1
+diff1 <- df_m1_rd1 %>%
+  rename(tot_contacts_rd1 = tot_contacts,
+         n_rd1 = n,
+         avg_cont_rd1 = avg_cont) %>%
+  left_join(df_m1_rd2 %>%
+              rename(tot_contacts_rd2 = tot_contacts,
+                     n_rd2 = n,
+                     avg_cont_rd2 = avg_cont), by = c("participant_age", "contact_age")) %>%
+  mutate(avg_cont = avg_cont_rd2 - avg_cont_rd1) %>%
+  select(participant_age, contact_age, avg_cont_rd2, avg_cont_rd1, avg_cont)
 
-# round 1 weighted matrix
-# number of participants per age group, from part_age1
-n_rd1 <- as.numeric(num_participants_rd1$n)
-
-# unweighted matrix
-m_rd1 <- matrix(df_m1_rd1$avg_cont,6,6,byrow=F)
-m_rd1[is.na(m_rd1)] = 0
-
-# this generates a square weighted reciprocal matrix for ages >20 years.
-k <- 6
-m_rd1_w <- matrix(0,k,k) 
-
-for(i in 1:k){
-  for(j in 1:k){
-    m_rd1_w[i,j] <- (m_rd1[i,j]*employee_pop[i] + m_rd1_w[j,i]*employee_pop[j]) / 
-      (employee_pop[i] + employee_pop[j])
-    if(is.na(m_rd1_w[i,j]) | is.infinite(m_rd1_w[i,j])) m_rd1_w[i,j] <- 0
-  }
-}
-m_rd1_w <- as.data.frame(m_rd1_w)
-rownames(m_rd1_w) <- row_names
-colnames(m_rd1_w) <- col_names
-
-# round 2 weighted matrix
-# number of participants per age group, from part_age1
-n_rd2 <- as.numeric(num_participants_rd2$n)
-
-# unweighted matrix
-m_rd2 <- matrix(df_m1_rd2$avg_cont,6,6,byrow=F)
-m_rd2[is.na(m_rd2)] = 0
-
-# this generates a square weighted reciprocal matrix for ages >20 years.
-# k <- 6
-m_rd2_w <- matrix(0,k,k) 
-
-for(i in 1:k){
-  for(j in 1:k){
-    m_rd2_w[i,j] <- (m_rd2[i,j]*employee_pop[i] + m_rd2_w[j,i]*employee_pop[j]) / 
-      (employee_pop[i] + employee_pop[j])
-    if(is.na(m_rd2_w[i,j]) | is.infinite(m_rd2_w[i,j])) m_rd2_w[i,j] <- 0
-  }
-}
-m_rd2_w <- as.data.frame(m_rd2_w)
-rownames(m_rd2_w) <- row_names
-colnames(m_rd2_w) <- col_names
+diff_matr1 <- diff1 %>%
+  # filter(contact_age!="0-9") %>% filter(participant_age!="0-9") %>%
+  # filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
+  ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
+  geom_raster() +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 8) +
+  theme_classic() +
+  scale_fill_gradient2(low="blue", mid="white", high="purple", 
+                       limits=c(-1, 3), breaks=(c(-1,0,3))) +
+  labs(fill = "Average \ncontact") +
+  xlab("") + 
+  ylab("Contact age") +
+  ggtitle("A. Round 1 - 2") +
+  theme(legend.title = element_text(size = 18),
+        legend.text = element_text(size = 18),
+        legend.justification = "right",
+        legend.position = "") +
+  theme(plot.title = element_text(size = 28), 
+        axis.title.x = element_text(size=26, face="bold", angle=0),
+        axis.title.y = element_text(size=26, face="bold"),
+        axis.text.x = element_text(size = 24),
+        axis.text.y = element_text(size= 24))
+# diff_matr1
 
 
-# round 3 weighted matrix
-# number of participants per age group, from part_age1
-n_rd3 <- as.numeric(num_participants_rd3$n)
+# round 3-2
+diff2 <- df_m1_rd3 %>%
+  rename(tot_contacts_rd3 = tot_contacts,
+                     n_rd3 = n,
+                     avg_cont_rd3 = avg_cont) %>%
+  left_join(df_m1_rd2 %>%
+              rename(tot_contacts_rd2 = tot_contacts,
+                     n_rd2 = n,
+                     avg_cont_rd2 = avg_cont), by = c("participant_age", "contact_age")) %>%
+  mutate(avg_cont = avg_cont_rd3 - avg_cont_rd2) %>%
+  select(participant_age, contact_age, avg_cont)
 
-# unweighted matrix
-m_rd3 <- matrix(df_m1_rd3$avg_cont,6,6,byrow=F)
-m_rd3[is.na(m_rd3)] = 0
+diff_matr2 <- diff2 %>%
+  # filter(contact_age!="0-9") %>% filter(participant_age!="0-9") %>%
+  # filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
+  ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
+  geom_raster() +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 8) +
+  theme_classic() +
+  scale_fill_gradient2(low="blue", mid="white", high="purple", 
+                       limits=c(-1, 3), breaks=(c(-1,0,3))) +
+  labs(fill = "Average \ncontact") +
+  xlab("") + 
+  ylab("") +
+  ggtitle("B. Round 2 - 3") +
+  theme(legend.title = element_text(size = 18),
+        legend.text = element_text(size = 18),
+        legend.justification = "right",
+        legend.position = "") +
+  theme(plot.title = element_text(size = 28), 
+        axis.title.x = element_text(size=26, face="bold", angle=0),
+        axis.title.y = element_text(size=26, face="bold"),
+        axis.text.x = element_text(size = 24),
+        axis.text.y = element_text(size= 24))
+# diff_matr2
 
-# this generates a square weighted reciprocal matrix for ages >20 years.
-# k <- 6
-m_rd3_w <- matrix(0,k,k) 
 
-for(i in 1:k){
-  for(j in 1:k){
-    m_rd3_w[i,j] <- (m_rd3[i,j]*employee_pop[i] + m_rd3_w[j,i]*employee_pop[j]) / 
-      (employee_pop[i] + employee_pop[j])
-    if(is.na(m_rd3_w[i,j]) | is.infinite(m_rd3_w[i,j])) m_rd3_w[i,j] <- 0
-  }
-}
-m_rd3_w <- as.data.frame(m_rd3_w)
-rownames(m_rd3_w) <- row_names
-colnames(m_rd3_w) <- col_names
+# round 4-3
+diff3 <- df_m1_rd4 %>%
+  rename(tot_contacts_rd4 = tot_contacts,
+                     n_rd4 = n,
+                     avg_cont_rd4 = avg_cont) %>%
+  left_join(df_m1_rd3 %>%
+              rename(tot_contacts_rd3 = tot_contacts,
+                     n_rd3 = n,
+                     avg_cont_rd3 = avg_cont), by = c("participant_age", "contact_age")) %>%
+  mutate(avg_cont = avg_cont_rd4 - avg_cont_rd3) %>%
+  select(participant_age, contact_age, avg_cont)
 
+diff_matr3 <- diff3 %>%
+  # filter(contact_age!="0-9") %>% filter(participant_age!="0-9") %>%
+  # filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
+  ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
+  geom_raster() +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 8) +
+  theme_classic() +
+  scale_fill_gradient2(low="blue", mid="white", high="purple", 
+                       limits=c(-1, 3), breaks=(c(-1,0,3))) +
+  labs(fill = "Average \ncontact") +
+  xlab("") + 
+  ylab("Contact age") +
+  ggtitle("C. Round 3 - 4") +
+  theme(legend.title = element_text(size = 18),
+        legend.text = element_text(size = 18),
+        legend.justification = "right",
+        legend.position = "") +
+  theme(plot.title = element_text(size = 28), 
+        axis.title.x = element_text(size=26, face="bold", angle=0),
+        axis.title.y = element_text(size=26, face="bold"),
+        axis.text.x = element_text(size = 24),
+        axis.text.y = element_text(size= 24))
+# diff_matr3
 
-# round 4 weighted matrix
-# number of participants per age group, from part_age1
-n_rd4 <- as.numeric(num_participants_rd4$n)
+# round 4-1
+diff4 <- df_m1_rd4 %>%
+  rename(tot_contacts_rd4 = tot_contacts,
+                     n_rd4 = n,
+                     avg_cont_rd4 = avg_cont) %>%
+  left_join(df_m1_rd1 %>%
+              rename(tot_contacts_rd1 = tot_contacts,
+                     n_rd1 = n,
+                     avg_cont_rd1 = avg_cont), by = c("participant_age", "contact_age")) %>%
+  mutate(avg_cont = avg_cont_rd4 - avg_cont_rd1) %>%
+  select(participant_age, contact_age, avg_cont)
 
-# unweighted matrix
-m_rd4 <- matrix(df_m1_rd4$avg_cont,6,6,byrow=F)
-m_rd4[is.na(m_rd4)] = 0
+diff_matr4 <- diff4 %>%
+  # filter(contact_age!="0-9") %>% filter(participant_age!="0-9") %>%
+  # filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
+  ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
+  geom_raster() +
+  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
+            color = "black", size = 8) +
+  theme_classic() +
+  scale_fill_gradient2(low="blue", mid="white", high="purple", 
+                       limits=c(-1, 3), breaks=(c(-1,0,3))) +
+  labs(fill = "Mean \ndifference") +
+  xlab("") + 
+  ylab("") +
+  ggtitle("D. Round 1 - 4") +
+  theme(legend.title = element_text(size = 18),
+        legend.text = element_text(size = 18),
+        legend.justification = "right",
+        legend.position = "") +
+  theme(plot.title = element_text(size = 28), 
+        axis.title.x = element_text(size=26, face="bold", angle=0),
+        axis.title.y = element_text(size=26, face="bold"),
+        axis.text.x = element_text(size = 24),
+        axis.text.y = element_text(size= 24))
+# diff_matr4
 
-# this generates a square weighted reciprocal matrix for ages >20 years.
-# k <- 6
-m_rd4_w <- matrix(0,k,k) 
+# get legend
+legend_mdiff <- get_legend(
+  diff_matr4 + 
+    guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "right",
+          legend.justification = "left"))
 
-for(i in 1:k){
-  for(j in 1:k){
-    m_rd4_w[i,j] <- (m_rd4[i,j]*employee_pop[i] + m_rd4_w[j,i]*employee_pop[j]) / 
-      (employee_pop[i] + employee_pop[j])
-    if(is.na(m_rd4_w[i,j]) | is.infinite(m_rd4_w[i,j])) m_rd4_w[i,j] <- 0
-  }
-}
-m_rd4_w <- as.data.frame(m_rd4_w)
-rownames(m_rd4_w) <- row_names
-colnames(m_rd4_w) <- col_names
+diff_matrix <- plot_grid(diff_matr1, diff_matr2, legend_mdiff,
+                         diff_matr3, diff_matr4,
+                         # labels = c("A","B","",
+                                    # "C","D"),
+                         # label_size = 18, 
+                         ncol=3, nrow=2, rel_widths = c(1,1,.2),
+                         scale=0.95, align="hv")
+
+ggsave(diff_matrix, filename = "../../publication/output/matrix_difference_all.tiff",
+       height=18, width=20, dpi=75,
+       bg="white")
+
+diff_matrix
+# dev(off)
+
 
 ```
-\
-\
 
-### Difference matrices among employees only
-```{r difference_matrix, warning=FALSE, echo=FALSE, comment = NA, fig.width = 18, fig.height = 14}
+```{r, eval=FALSE}
+  
 # round 1-2
 diff1 <- m_rd2 - m_rd1
 colnames(diff1) <- col_names
@@ -1392,3 +1471,115 @@ source("../../publication/scripts/02a_transmission_model_index.Rmd")
 
 ```
 
+
+### Weighted matrix
+```{r weighted_matrix_dfs, warning=FALSE, echo=FALSE, comment = NA, fig.width = 18, fig.height = 14}
+
+# employee weighted population data
+employee_pop <- read_csv("../../publication/data/us_company_weights_052021.csv",
+                            col_types = cols())
+# select(age_cat, p_age, age_weight) %>%
+employee_pop <-  as.numeric(employee_pop$n_employees)
+
+# col_names <- c("60+","40-59","30-39","20-29","10-19","0-9")
+# row_names <- c("60+","40-59","30-39","20-29","10-19","0-9")
+col_names <- c("20-29","30-39","40-59","60+","0-9","10-19")
+row_names <- c("0-9","10-19","20-29","30-39","40-59","60+")
+
+# round 1 weighted matrix
+# number of participants per age group, from part_age1
+n_rd1 <- as.numeric(num_participants_rd1$n)
+
+# unweighted matrix
+m_rd1 <- matrix(df_m1_rd1$avg_cont,6,6,byrow=F)
+m_rd1[is.na(m_rd1)] = 0
+
+# this generates a square weighted reciprocal matrix for ages >20 years.
+k <- 6
+m_rd1_w <- matrix(0,k,k) 
+
+for(i in 1:k){
+  for(j in 1:k){
+    m_rd1_w[i,j] <- (m_rd1[i,j]*employee_pop[i] + m_rd1_w[j,i]*employee_pop[j]) / 
+      (employee_pop[i] + employee_pop[j])
+    if(is.na(m_rd1_w[i,j]) | is.infinite(m_rd1_w[i,j])) m_rd1_w[i,j] <- 0
+  }
+}
+m_rd1_w <- as.data.frame(m_rd1_w)
+rownames(m_rd1_w) <- row_names
+colnames(m_rd1_w) <- col_names
+
+# round 2 weighted matrix
+# number of participants per age group, from part_age1
+n_rd2 <- as.numeric(num_participants_rd2$n)
+
+# unweighted matrix
+m_rd2 <- matrix(df_m1_rd2$avg_cont,6,6,byrow=F)
+m_rd2[is.na(m_rd2)] = 0
+
+# this generates a square weighted reciprocal matrix for ages >20 years.
+# k <- 6
+m_rd2_w <- matrix(0,k,k) 
+
+for(i in 1:k){
+  for(j in 1:k){
+    m_rd2_w[i,j] <- (m_rd2[i,j]*employee_pop[i] + m_rd2_w[j,i]*employee_pop[j]) / 
+      (employee_pop[i] + employee_pop[j])
+    if(is.na(m_rd2_w[i,j]) | is.infinite(m_rd2_w[i,j])) m_rd2_w[i,j] <- 0
+  }
+}
+m_rd2_w <- as.data.frame(m_rd2_w)
+rownames(m_rd2_w) <- row_names
+colnames(m_rd2_w) <- col_names
+
+
+# round 3 weighted matrix
+# number of participants per age group, from part_age1
+n_rd3 <- as.numeric(num_participants_rd3$n)
+
+# unweighted matrix
+m_rd3 <- matrix(df_m1_rd3$avg_cont,6,6,byrow=F)
+m_rd3[is.na(m_rd3)] = 0
+
+# this generates a square weighted reciprocal matrix for ages >20 years.
+# k <- 6
+m_rd3_w <- matrix(0,k,k) 
+
+for(i in 1:k){
+  for(j in 1:k){
+    m_rd3_w[i,j] <- (m_rd3[i,j]*employee_pop[i] + m_rd3_w[j,i]*employee_pop[j]) / 
+      (employee_pop[i] + employee_pop[j])
+    if(is.na(m_rd3_w[i,j]) | is.infinite(m_rd3_w[i,j])) m_rd3_w[i,j] <- 0
+  }
+}
+m_rd3_w <- as.data.frame(m_rd3_w)
+rownames(m_rd3_w) <- row_names
+colnames(m_rd3_w) <- col_names
+
+
+# round 4 weighted matrix
+# number of participants per age group, from part_age1
+n_rd4 <- as.numeric(num_participants_rd4$n)
+
+# unweighted matrix
+m_rd4 <- matrix(df_m1_rd4$avg_cont,6,6,byrow=F)
+m_rd4[is.na(m_rd4)] = 0
+
+# this generates a square weighted reciprocal matrix for ages >20 years.
+# k <- 6
+m_rd4_w <- matrix(0,k,k) 
+
+for(i in 1:k){
+  for(j in 1:k){
+    m_rd4_w[i,j] <- (m_rd4[i,j]*employee_pop[i] + m_rd4_w[j,i]*employee_pop[j]) / 
+      (employee_pop[i] + employee_pop[j])
+    if(is.na(m_rd4_w[i,j]) | is.infinite(m_rd4_w[i,j])) m_rd4_w[i,j] <- 0
+  }
+}
+m_rd4_w <- as.data.frame(m_rd4_w)
+rownames(m_rd4_w) <- row_names
+colnames(m_rd4_w) <- col_names
+
+```
+\
+\
