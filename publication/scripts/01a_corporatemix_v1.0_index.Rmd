@@ -441,7 +441,7 @@ set.seed(30322)
 rd1_mean_bootstrap <- boot(data = day1_rd1, statistic = bootstrap_mean, R = 1000)
 
 rd1_mean <- mean(rd1_mean_bootstrap$t[, 1])
-rd1_sd <- sd(rd1_mean_bootstrap$t[, 2])
+rd1_sd <- round(sd(rd1_mean_bootstrap$t[, 2]),1)
 rd1_ci <- boot.ci(rd1_mean_bootstrap, type = "basic")$basic
 
 # # old code to geberate mean and sd
@@ -459,7 +459,7 @@ rd2_mean <- df_all %>%
 
 rd2_mean_bootstrap <- boot(data = rd2_mean, statistic = bootstrap_mean, R = 1000)
 rd2_mean <- mean(rd2_mean_bootstrap$t[, 1])
-rd2_sd <- sd(rd2_mean_bootstrap$t[, 2])
+rd2_sd <- round(sd(rd2_mean_bootstrap$t[, 2]),1)
 rd2_ci <- boot.ci(rd2_mean_bootstrap, type = "basic")$basic
 
 
@@ -471,7 +471,7 @@ rd3_mean <- df_all %>%
   #           sd = sd(num_contacts, na.rm = TRUE), .groups = "drop")
 rd3_mean_bootstrap <- boot(data = rd3_mean, statistic = bootstrap_mean, R = 1000)
 rd3_mean <- mean(rd3_mean_bootstrap$t[, 1])
-rd3_sd <- sd(rd3_mean_bootstrap$t[, 2])
+rd3_sd <- round(sd(rd3_mean_bootstrap$t[, 2]),1)
 rd3_ci <- boot.ci(rd3_mean_bootstrap, type = "basic")$basic
 
 
@@ -483,7 +483,7 @@ rd4_mean <- df_all %>%
   #           sd = sd(num_contacts, na.rm = TRUE), .groups = "drop")
 rd4_mean_bootstrap <- boot(data = rd4_mean, statistic = bootstrap_mean, R = 1000)
 rd4_mean <- mean(rd4_mean_bootstrap$t[, 1])
-rd4_sd <- sd(rd4_mean_bootstrap$t[, 2])
+rd4_sd <- round(sd(rd4_mean_bootstrap$t[, 2]),1)
 rd4_ci <- boot.ci(rd4_mean_bootstrap, type = "basic")$basic
 
 cat("The mean number of contacts in rd1 is", round(rd1_mean,1), "(95%CI", round(rd1_ci[4],1),"-",round(rd1_ci[5],1),")")
@@ -621,43 +621,6 @@ respectively.
 \
 \
 
-
-```{r, eval=FALSE}
-make_matrix_rd2 <- function(df1, title, txt_size = 12, mid = 2.5, max = 5.0, legendpos = "top", n_bootstrap = 1000, alpha = 0.05) {
-  df1 %>%
-    group_by(participant_age, contact_age) %>%
-    dplyr::summarize(tot_contacts = n()) %>%
-    full_join(standard_str, by = c("participant_age", "contact_age"), keep = FALSE) %>%
-    replace(is.na(.), 0) %>%
-    left_join(num_participants_rd2, by = "participant_age") %>%
-    mutate(avg_cont = (tot_contacts / n),
-           avg_cont = replace_na(avg_cont, 0),
-           avg_cont = na_if(avg_cont, 0)) %>%
-    na.omit() %>%
-    group_by(participant_age) %>%
-    # print() %>%
-    boot::boot(data = ., statistic = function(data, indices) {
-      sample_data <- data[indices, ]
-      mean_avg_cont <- mean(sample_data$avg_cont)
-      return(mean_avg_cont)
-    }, R = n_bootstrap) %>%
-    boot::boot.ci(type = "bca", conf = 1 - alpha)  %>%
-    print(.$bca)
-}
-    # as.data.frame() %>%
-    # pivot_wider(names_from = Statistic, values_from = c("2.5 %", "97.5 %")) %>%
-    mutate(avg_cont = round(Statistic.Mean, 2),
-           lower_ci = round(`2.5 %`, 2),
-           upper_ci = round(`97.5 %`, 2)) %>%
-    select(participant_age, avg_cont, lower_ci, upper_ci) %>%
-    contactmatrix_viz(title = title, txt_size = txt_size, mid = mid, max = max, legendpos = legendpos)
-}
-
-# Usage example:
-result <- make_matrix_rd2(df_rd2_temp, title = "Matrix Title")
-print(result)
-```
-
 ### Matrices by study round
 ```{r graphs3, warning=FALSE, echo=FALSE, comment = NA, fig.width = 18, fig.height = 14}
 
@@ -792,6 +755,63 @@ m_all <- plot_grid(m1_rd1, m1_rd2, legend_m1,
           scale=0.95, align="hv")
 
 m_all
+```
+
+\
+\
+
+### Proportion of contacts by age
+
+```{r}
+## Proportion of contacts by agegroup
+prop_contacts <- function(df) {
+  df %>%
+    # filter(round == "One") %>%
+    dplyr::group_by(participant_age, contact_age) %>%
+    dplyr::summarize(n=n(), .groups = "drop") %>%
+    mutate(prop_contacts = round(100*(n/sum(n)), 1)) %>%
+    ggplot(aes(x = participant_age, y = contact_age, fill = prop_contacts)) +
+    geom_raster() +
+    scale_fill_gradient(low = "blue", high = "red") +
+    geom_text(aes(participant_age, contact_age, label = round(prop_contacts, digits=1)), 
+              color = "white", size = 8) +
+    theme_classic() +
+    theme(legend.position = "none") +
+    xlab("") + 
+    ylab("") + 
+    labs(fill = "Prop \ncontact") +
+    theme(legend.title = element_text(size = 20),
+          legend.text = element_text(size = 20)) +
+    theme(axis.title.x = element_text(size=26, face="bold", angle=0),
+          axis.title.y = element_text(size=26, face="bold"),
+          axis.text.x = element_text(size = 24),
+          axis.text.y = element_text(size= 24)) +
+    theme(plot.margin = margin(6, 0, 6, 0))
+  }
+
+prop_contacts_rd1 <- prop_contacts(rd1) + ylab("Contact age")
+prop_contacts_rd2 <- prop_contacts(rd2)
+prop_contacts_rd3 <- prop_contacts(rd3) + ylab("Contact age") + xlab("Participant age")
+prop_contacts_rd4 <- prop_contacts(rd4) + xlab("Participant age")
+
+legend_m_prop <- get_legend(prop_contacts_rd2 +
+                          guides(color = guide_legend(nrow = 1)) +
+                          theme(legend.position = "right",
+                                legend.justification = "left"))
+
+m_prop <- plot_grid(prop_contacts_rd1, prop_contacts_rd2, legend_m_prop,
+                    prop_contacts_rd3, prop_contacts_rd4,
+          # labels = c("A","B","","C","D"),
+          # label_size = 22,
+          ncol=3, nrow=2, rel_widths=c(1.2,1.15,.2),
+          scale=0.95, align="hv")
+
+# ggsave(m_prop, filename = "../../publication/output/matrix_age_proportions.tiff",
+#        height=18, width=20, dpi=75,
+#        bg="white")
+
+m_prop
+
 ```
 
 \
@@ -1024,6 +1044,9 @@ m_location <- plot_grid(NULL, m1_rd1_work, m1_rd2_work, m1_rd3_work, m1_rd4_work
                                    '', '', '', '',''),
                         label_size=30, bg='transparent')
 
+ggsave(m_location, filename = "../../publication/output/matrix_location.tiff",
+       height=18, width=20, dpi=75,
+       bg="white")
 
 print(m_location)
 
@@ -1037,7 +1060,7 @@ print(m_location)
 
 ```{r matrix_dfs, warning=FALSE, echo=FALSE, include=FALSE}
 
-# matrix dataframes
+# generate matrix dataframes
 ## Round 1
 df_m1_rd1 <- rd1 %>%
   dplyr::group_by(participant_age, contact_age) %>%
@@ -1080,6 +1103,9 @@ df_m1_rd4 <- rd4 %>%
 
 ### Difference matrices
 ```{r difference_matrix, warning=FALSE, echo=FALSE, comment = NA, fig.width = 18, fig.height = 14}
+# create a divergent color scale theme
+diff_color_scale <- scale_fill_gradient2(low="#4d9221", mid="#f7f7f7", high="#c51b7d", midpoint = 0,
+                       limits=c(-1, 3), breaks=(c(-1,0,1,3)))
 
 # round 2-1
 diff1 <- df_m1_rd1 %>%
@@ -1093,6 +1119,7 @@ diff1 <- df_m1_rd1 %>%
   mutate(avg_cont = avg_cont_rd2 - avg_cont_rd1) %>%
   select(participant_age, contact_age, avg_cont_rd2, avg_cont_rd1, avg_cont)
 
+
 diff_matr1 <- diff1 %>%
   # filter(contact_age!="0-9") %>% filter(participant_age!="0-9") %>%
   # filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
@@ -1101,8 +1128,7 @@ diff_matr1 <- diff1 %>%
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
             color = "black", size = 8) +
   theme_classic() +
-  scale_fill_gradient2(low="blue", mid="white", high="purple", 
-                       limits=c(-1, 3), breaks=(c(-1,0,3))) +
+  diff_color_scale +
   labs(fill = "Average \ncontact") +
   xlab("") + 
   ylab("Contact age") +
@@ -1139,8 +1165,7 @@ diff_matr2 <- diff2 %>%
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
             color = "black", size = 8) +
   theme_classic() +
-  scale_fill_gradient2(low="blue", mid="white", high="purple", 
-                       limits=c(-1, 3), breaks=(c(-1,0,3))) +
+  diff_color_scale +
   labs(fill = "Average \ncontact") +
   xlab("") + 
   ylab("") +
@@ -1177,10 +1202,9 @@ diff_matr3 <- diff3 %>%
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
             color = "black", size = 8) +
   theme_classic() +
-  scale_fill_gradient2(low="blue", mid="white", high="purple", 
-                       limits=c(-1, 3), breaks=(c(-1,0,3))) +
+  diff_color_scale +
   labs(fill = "Average \ncontact") +
-  xlab("") + 
+  xlab("Participant age") + 
   ylab("Contact age") +
   ggtitle("C. Round 3 - 4") +
   theme(legend.title = element_text(size = 18),
@@ -1214,10 +1238,9 @@ diff_matr4 <- diff4 %>%
   geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
             color = "black", size = 8) +
   theme_classic() +
-  scale_fill_gradient2(low="blue", mid="white", high="purple", 
-                       limits=c(-1, 3), breaks=(c(-1,0,3))) +
+  diff_color_scale +
   labs(fill = "Mean \ndifference") +
-  xlab("") + 
+  xlab("Participant age") + 
   ylab("") +
   ggtitle("D. Round 1 - 4") +
   theme(legend.title = element_text(size = 18),
@@ -1246,9 +1269,9 @@ diff_matrix <- plot_grid(diff_matr1, diff_matr2, legend_mdiff,
                          ncol=3, nrow=2, rel_widths = c(1,1,.2),
                          scale=0.95, align="hv")
 
-ggsave(diff_matrix, filename = "../../publication/output/matrix_difference_all.tiff",
-       height=18, width=20, dpi=75,
-       bg="white")
+# ggsave(diff_matrix, filename = "../../publication/output/matrix_difference_all.tiff",
+#        height=18, width=20, dpi=75,
+#        bg="white")
 
 diff_matrix
 # dev(off)
@@ -1256,164 +1279,45 @@ diff_matrix
 
 ```
 
-```{r, eval=FALSE}
+
+```{r}
+compute_Q_index <- function(matrix) {
+  if (!is.matrix(matrix) || nrow(matrix) != ncol(matrix)) {
+    stop("Input must be a square matrix.")
+  }
   
-# round 1-2
-diff1 <- m_rd2 - m_rd1
-colnames(diff1) <- col_names
-rownames(diff1) <- row_names
+  n <- nrow(matrix)
+  total_pairs <- n * (n - 1) / 2  # Total number of unique pairs
+  
+  q_index <- 1 - (sum(matrix) / total_pairs)
+  
+  return(q_index)
+}
 
-diff1 <- diff1 %>%
-  as.data.frame() %>%
-  rownames_to_column("participant_age") %>%
-  pivot_longer(-c(participant_age), names_to = "contact_age", values_to = "avg_cont") 
 
-diff_matr1 <- diff1 %>%
+m_rd1 <- df_m1_rd1 %>%
   filter(contact_age!="0-9") %>% filter(participant_age!="0-9") %>%
   filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
-  ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
-  geom_raster() +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
-            color = "black", size = 8) +
-  theme_classic() +
-  scale_fill_gradient2(low="blue", mid="white", high="purple", 
-                       limits=c(-4, 4), breaks=(c(-4,-2,0,2,4))) +
-  labs(fill = "Average \ncontact") +
-  xlab("") + 
-  ylab("Contact age") +
-  ggtitle("A. Round 1 - 2") +
-  theme(legend.title = element_text(size = 18),
-        legend.text = element_text(size = 18),
-        legend.justification = "right",
-        legend.position = "") +
-  theme(plot.title = element_text(size = 28), 
-        axis.title.x = element_text(size=26, face="bold", angle=0),
-        axis.title.y = element_text(size=26, face="bold"),
-        axis.text.x = element_text(size = 24),
-        axis.text.y = element_text(size= 24))
-# diff_matr1
+  select(avg_cont)
+m_rd1 <- matrix(m_rd1$avg_cont,4,4,byrow=F)
+  
 
-# round 2-3
-diff2 <- m_rd3_w - m_rd2_w
-colnames(diff2) <- col_names
-rownames(diff2) <- row_names
+# Compute the Q-index for the example matrix
+rd1_q_value <- compute_Q_index(m_rd1)
+cat("RD1 Q-index:", rd1_q_value, "\n")
 
-diff2 <- diff2 %>%
-  as.data.frame() %>%
-  rownames_to_column("participant_age") %>%
-  pivot_longer(-c(participant_age), names_to = "contact_age", values_to = "avg_cont") 
+rd2_q_value <- compute_Q_index(matrix(df_m1_rd2$avg_cont,6,6,byrow=F))
+cat("RD2 Q-index:", rd2_q_value, "\n")
 
-diff_matr2 <- diff2 %>%
-  filter(contact_age!="0-9") %>% filter(participant_age!="0-9") %>%
-  filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
-  ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
-  geom_raster() +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
-            color = "black", size = 8) +
-  theme_classic() +
-  scale_fill_gradient2(low="blue", mid="white", high="purple", 
-                       limits=c(-4, 4), breaks=(c(-4,-2,0,2,4))) +
-  xlab("") + 
-  ylab("") +
-  ggtitle("B. Round 2 - 3") +
-  theme(legend.title = element_text(size = 18),
-        legend.text = element_text(size = 18),
-        legend.justification = "right",
-        legend.position = "") +
-  theme(plot.title = element_text(size = 28), 
-        axis.title.x = element_text(size=26, face="bold", angle=0),
-        axis.title.y = element_text(size=26, face="bold"),
-        axis.text.x = element_text(size = 24),
-        axis.text.y = element_text(size= 24))
-# diff_matr2
+rd3_q_value <- compute_Q_index(matrix(df_m1_rd3$avg_cont,6,6,byrow=F))
+cat("RD3 Q-index:", rd3_q_value, "\n")
 
-# round 4-3
-diff3 <- m_rd4_w - m_rd3_w
-colnames(diff3) <- col_names
-rownames(diff3) <- row_names
+rd4_q_value <- compute_Q_index(matrix(df_m1_rd4$avg_cont,6,6,byrow=F))
+cat("RD4 Q-index:", rd4_q_value, "\n")
 
-diff3 <- diff3 %>%
-  as.data.frame() %>%
-  rownames_to_column("participant_age") %>%
-  pivot_longer(-c(participant_age), names_to = "contact_age", values_to = "avg_cont")
-
-diff_matr3 <- diff3 %>%
-  filter(contact_age!="0-9") %>% filter(participant_age!="0-9") %>%
-  filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
-  ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
-  geom_raster() +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
-            color = "black", size = 8) +
-  theme_classic() +
-  scale_fill_gradient2(low="blue", mid="white", high="purple", 
-                       limits=c(-4, 4), breaks=(c(-4,-2,0,2,4))) +
-  xlab("Participant age") + 
-  ylab("Contact age") +
-  ggtitle("C. Round 3 - 4") +
-  theme(legend.title = element_text(size = 18),
-        legend.text = element_text(size = 18),
-        legend.justification = "right",
-        legend.position = "") +
-  theme(plot.title = element_text(size = 28), 
-        axis.title.x = element_text(size=26, face="bold", angle=0),
-        axis.title.y = element_text(size=26, face="bold"),
-        axis.text.x = element_text(size = 24),
-        axis.text.y = element_text(size= 24))
-# diff_matr3
-
-# round 1-4
-diff4 <- m_rd4_w - m_rd1_w
-colnames(diff4) <- col_names
-rownames(diff4) <- row_names
-
-diff4 <- diff4 %>%
-  as.data.frame() %>%
-  rownames_to_column("participant_age") %>%
-  pivot_longer(-c(participant_age), names_to = "contact_age", values_to = "avg_cont") 
-
-diff_matr4 <- diff4 %>%
-  filter(contact_age!="0-9") %>% filter(participant_age!="0-9") %>%
-  filter(contact_age!="10-19") %>%  filter(participant_age!="10-19") %>%
-  ggplot(aes(x=participant_age, y=contact_age, fill=avg_cont)) +
-  geom_raster() +
-  geom_text(aes(participant_age, contact_age, label = round(avg_cont, digits=1)), 
-            color = "black", size = 8) +
-  theme_classic() +
-  scale_fill_gradient2(low="blue", mid="white", high="purple", 
-                       limits=c(-4, 4), breaks=(c(-4,-2,0,2,4))) +
-  xlab("Participant age") + 
-  ylab("") +
-  ggtitle("D. Round 1 - 4 (Overall)") +
-  theme(legend.title = element_text(size = 18),
-        legend.text = element_text(size = 18),
-        legend.justification = "right",
-        legend.position = "") +
-  theme(plot.title = element_text(size = 28), 
-        axis.title.x = element_text(size=26, face="bold", angle=0),
-        axis.title.y = element_text(size=26, face="bold"),
-        axis.text.x = element_text(size = 24),
-        axis.text.y = element_text(size= 24))
-# diff_matr4
-
-
-# get legend
-legend_mdiff <- get_legend(
-  diff_matr1 + 
-    guides(color = guide_legend(nrow = 1)) +
-    theme(legend.position = "right",
-          legend.justification = "left"))
-
-diff_matrix <- plot_grid(diff_matr1, diff_matr2, legend_mdiff,
-                         diff_matr3, diff_matr4,
-                         # labels = c("A","B","",
-                                    # "C","D"),
-                         # label_size = 18, 
-                         ncol=3, nrow=2, rel_widths = c(1,1,.2),
-                         scale=0.95, align="hv")
-
-
-print(diff_matrix)
 ```
+
+
 
 
 ```{r, save-figs,include=FALSE}
@@ -1473,7 +1377,7 @@ source("../../publication/scripts/02a_transmission_model_index.Rmd")
 
 
 ### Weighted matrix
-```{r weighted_matrix_dfs, warning=FALSE, echo=FALSE, comment = NA, fig.width = 18, fig.height = 14}
+```{r weighted_matrix_dfs, eval=FALSE, warning=FALSE, echo=FALSE, comment = NA, fig.width = 18, fig.height = 14}
 
 # employee weighted population data
 employee_pop <- read_csv("../../publication/data/us_company_weights_052021.csv",
@@ -1583,3 +1487,4 @@ colnames(m_rd4_w) <- col_names
 ```
 \
 \
+
