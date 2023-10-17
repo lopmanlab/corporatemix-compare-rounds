@@ -16,6 +16,15 @@ library(ggplot2)
 
 df_all <- readRDS("../../publication/data/df_all.RDS")
 
+### NB: Carol made took a random numeric age for each category since the exact age isn't available. 
+df_all <- df_all%>%mutate(
+          part_age_exact = case_when(
+            participant_age=="60+" ~ 60,
+            participant_age=="40-59" ~ 49,
+            participant_age=="30-39"~ 35,
+            participant_age=="20-29"~25)
+)
+
 ##### Weighting
 ### age categories to join with population weighting
 df_all <- df_all %>% 
@@ -23,7 +32,9 @@ df_all <- df_all %>%
          study_site = "USA")
 
 df_all <- df_all %>% 
-  mutate(part_age = as.character(participant_age),
+  mutate(
+         #part_age = as.character(participant_age),
+          part_age = part_age_exact,
          age_cont = as.character(contact_age),
          
          cnt_age_est_min = case_when( 
@@ -88,9 +99,10 @@ df_rd1 <- df_rd1 %>%
 
 df_rd1 <- survey(
   participants = df_rd1 %>% 
-    select(participant_id, participant_age, part_weight) %>% 
+    select(participant_id, part_age, part_weight) %>% 
     mutate(part_id = participant_id,
-           part_age = as.character(participant_age)) %>%
+           #part_age = as.character(participant_age)
+           part_age =part_age) %>%
     unique()%>%
     rename(weights = part_weight) %>%
     mutate(country=rep("USA"),
@@ -107,7 +119,7 @@ df_rd1 <- survey(
 set.seed(30322)
 
 m_rd1 <- contact_matrix(df_rd1, 
-                        age.limits = c(0,10,20,30,40,60,99), ## Specify age bands for the matrix
+                        age.limits = c(0,10,20,30,40,50,99), ## Specify age bands for the matrix
                         symmetric=F,  ##symmetric matrix
                         # missing.participant.age = "remove",
                         missing.contact.age = "sample", 
