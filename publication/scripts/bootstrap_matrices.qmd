@@ -4,6 +4,13 @@ format: html
 editor: source
 ---
 
+```{r, warning=FALSE, comment=FALSE}
+library(dplyr)
+library(socialmixr)
+library(ggplot2)
+```
+
+
 ```{r}
 #| warning: false
 
@@ -55,7 +62,9 @@ pop_dist <- read.csv("../../publication/data/us_company_weights_052021.csv") %>%
 
 # weight cleaning for rd1
 df_rd1 <- df_all %>%
-  filter(round == "One")
+  filter(round == "One") %>%
+  filter(contact_age != "0-9") %>%
+  filter(contact_age != "10-19")
   
 pop_weight_rd1 <- df_rd1 %>%
   select(participant_id, study_site, weight_cat) %>% 
@@ -72,7 +81,8 @@ pop_weight_rd1 <- pop_weight_rd1 %>%
 
 ## join weights into participants data
 df_rd1 <- df_rd1 %>%
-  left_join(pop_weight_rd1 %>% select(study_site, weight_cat, part_weight),
+  left_join(pop_weight_rd1 %>% 
+              select(study_site, weight_cat, part_weight),
             by = c("study_site"="study_site", "weight_cat"="weight_cat"))
 
 
@@ -83,10 +93,10 @@ df_rd1 <- survey(
     select(participant_id, participant_age, part_weight) %>% 
     mutate(part_id = participant_id,
            part_age = as.character(participant_age)) %>%
-    unique()%>%
+    unique() %>%
     rename(weights = part_weight) %>%
-    mutate(country=rep("USA"),
-           year=rep(2022)),
+    mutate(country = rep("USA"),
+           year = rep(2022)),
   
   contacts = df_rd1 %>%
     select(participant_id, cnt_age_est_min, cnt_age_est_max) %>% #, cnt_home:cnt_otherplace)
@@ -96,24 +106,59 @@ df_rd1 <- survey(
 
 
 ##### Creating matrices
+set.seed(30322)
 
-### urban
 m_rd1 <- contact_matrix(df_rd1, 
-                        age.limits = c(0,10,20,30,40,60,99), ##Specify age bands for the matrix
+                        age.limits = c(0,10,20,30,40,60,99), ## Specify age bands for the matrix
                         symmetric=F,  ##symmetric matrix
+                        countries = "USA",
+                        sample.participants = TRUE,
                         missing.participant.age = "remove",
-                        missing.contact.age = "sample", 
-                        estimated.contact.age = "sample",  
-                        ##what to do if missing contact age group, use sample with bootstraping
+                        missing.contact.age = "sample",
+                        estimated.contact.age = "sample",
                         weigh.age = T,
                         return.part.weights=T,
-                        n=1000)     ##Number of bootstraps
+                        n=1000) ## Number of bootstraps
+# the output from here has age group 40+ and omits 40-59 and 60+. that's why the matrices below are the way they are.
+
+##################
+# here, i tried to update the code to reflect the updates in the socialmixr vignette (https://cran.r-project.org/web/packages/socialmixr/vignettes/socialmixr.html#bootstrapping)
+# i get similar output. mean values are not the same, but very close.
+
+# m_rd1 <- replicate(n=1000,
+#                    contact_matrix(df_rd1,
+#                         # does this only work for square matrices? currently, age group 40-59 and 60+ are aggregated as one group of 40+.
+#                         age.limits = c(0,10,20,30,40,100), ## Specify age bands for the matrix
+#                         sample.participants = TRUE))
+# mr <- Reduce("+", lapply(m_rd1["matrix", ], function(x) x / ncol(m_rd1)))
+####################
+
 
 # Code to take the mean of matrices
-m_rd1_fin <- Reduce("+", lapply(m_rd1$matrices, function(x) {x$matrix})) / length(m_rd1$matrices)
+m_rd1_mean <- Reduce("+", lapply(m_rd1$matrices, 
+                                function(x) {x$matrix})) / length(m_rd1$matrices)
 
-#Make into long form
-mat_rd1 <- reshape2::melt(m_rd1_fin, varnames = c("age1", "age_cont"), value.name = "contacts") %>%
+# Create a list of matrices
+m_rd1_list <- lapply(m_rd1$matrices, 
+                        function(x) {x$matrix})
+
+# Calculate the element-wise standard deviation
+m_rd1_sd <- sqrt(Reduce("+", lapply(m_rd1_list, 
+                                    function(x) (x - m_rd1_mean)^2)) / (length(m_rd1$matrices) - 1))
+
+# # Calculate the confidence intervals. DOES NOT WORK DUE TO NAs
+# m_rd1_ci <- matrix(0, nrow = nrow(m_rd1_mean), ncol = ncol(m_rd1_mean))
+# 
+# for (i in 1:nrow(m_rd1_mean)) {
+#   for (j in 1:ncol(m_rd1_mean)) {
+#     matrix_values <- sapply(m_rd1_list, function(x) x[i, j])
+#     m_rd1_ci[i, j] <- quantile(matrix_values, c(0.025, 0.975))
+#   }
+# }
+
+
+# Make into long form
+mat_rd1 <- reshape2::melt(m_rd1_mean, varnames = c("age1", "age_cont"), value.name = "contacts") %>%
   left_join(data.frame(age1 = as.character(c(1,2,3,4,5,6)),
                        age_part = c("[0,10)","[10,20)","[20,30)","[30,40)","[40,59)","60+")),
             by="age1")
@@ -127,7 +172,7 @@ plot_mat_rd1 <- ggplot(mat_rd1, aes(x = age1, y = age_cont, fill = contacts)) +
             colour = "black", check_overlap = TRUE)+
   theme_half_open()  +
   theme(legend.position = "none")
-
+plot_mat_rd1
 ```
 
 # Round 2
@@ -191,10 +236,10 @@ m_rd2 <- contact_matrix(df_rd2,
                         n=1000) ## Number of bootstraps
 
 # Code to take the mean of matrices
-m_rd2_fin <- Reduce("+", lapply(m_rd2$matrices, function(x) {x$matrix})) / length(m_rd2$matrices)
+m_rd2_mean <- Reduce("+", lapply(m_rd2$matrices, function(x) {x$matrix})) / length(m_rd2$matrices)
 
 #Make into long form
-mat_rd2 <- reshape2::melt(m_rd2_fin, varnames = c("age1", "age_cont"), value.name = "contacts") %>%
+mat_rd2 <- reshape2::melt(m_rd2_mean, varnames = c("age1", "age_cont"), value.name = "contacts") #%>%
   left_join(data.frame(age1 = as.character(c(1,2,3,4,5,6)),
                        age_part = c("[0,10)","[10,20)","[20,30)","[30,40)","[40,59)","60+")),
             by="age1")
@@ -209,7 +254,7 @@ plot_mat_rd2 <- ggplot(mat_rd2, aes(x = age1, y = age_cont, fill = contacts)) +
             colour = "black", check_overlap = TRUE)+
   theme_half_open()  +
   theme(legend.position = "none")
-
+plot_mat_rd2
 ```
 
 # Round 3
@@ -273,10 +318,10 @@ m_rd3 <- contact_matrix(df_rd3,
                         n=1000)     ##Number of bootstraps
 
 # Code to take the mean of matrices
-m_rd3_fin <- Reduce("+", lapply(m_rd3$matrices, function(x) {x$matrix})) / length(m_rd3$matrices)
+m_rd3_mean <- Reduce("+", lapply(m_rd3$matrices, function(x) {x$matrix})) / length(m_rd3$matrices)
 
 #Make into long form
-mat_rd3 <- reshape2::melt(m_rd3_fin, varnames = c("age1", "age_cont"), value.name = "contacts") %>%
+mat_rd3 <- reshape2::melt(m_rd3_mean, varnames = c("age1", "age_cont"), value.name = "contacts") %>%
   left_join(data.frame(age1 = as.character(c(1,2,3,4,5,6)),
                        age_part = c("[0,10)","[10,20)","[20,30)","[30,40)","[40,59)","60+")),
             by="age1")
@@ -291,7 +336,7 @@ plot_mat_rd3 <- ggplot(mat_rd3, aes(x = age1, y = age_cont, fill = contacts)) +
             colour = "black", check_overlap = TRUE)+
   theme_half_open()  +
   theme(legend.position = "none")
-
+plot_mat_rd3
 ```
 
 # Round 4
@@ -355,10 +400,10 @@ m_rd4 <- contact_matrix(df_rd4,
                         n=1000)     ##Number of bootstraps
 
 # Code to take the mean of matrices
-m_rd4_fin <- Reduce("+", lapply(m_rd4$matrices, function(x) {x$matrix})) / length(m_rd4$matrices)
+m_rd4_mean <- Reduce("+", lapply(m_rd4$matrices, function(x) {x$matrix})) / length(m_rd4$matrices)
 
 #Make into long form
-mat_rd4 <- reshape2::melt(m_rd4_fin, varnames = c("age1", "age_cont"), value.name = "contacts") %>%
+mat_rd4 <- reshape2::melt(m_rd4_mean, varnames = c("age1", "age_cont"), value.name = "contacts") %>%
   left_join(data.frame(age1 = as.character(c(1,2,3,4,5,6)),
                        age_part = c("[0,10)","[10,20)","[20,30)","[30,40)","[40,59)","60+")),
             by="age1")
