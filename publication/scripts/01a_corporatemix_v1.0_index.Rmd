@@ -683,7 +683,7 @@ m1_rd1_g <- graph_from_adjacency_matrix(m1_rd1_df, mode = "undirected")
 
 # Calculate the Q-index
 q_index_rd1 <- assortativity_degree(m1_rd1_g)
-cat("Rural Q-index (Assortativity):", q_index_rd1, "\n") # 0.30
+cat("RD1 Q-index (Assortativity):", q_index_rd1, "\n") # 0.30
 
 
 ## Round 2 matrix
@@ -723,7 +723,7 @@ m1_rd2_g <- graph_from_adjacency_matrix(m1_rd2_df, mode = "undirected")
 
 # Calculate the Q-index
 q_index_rd2 <- assortativity_degree(m1_rd2_g)
-cat("Rural Q-index (Assortativity):", q_index_rd2, "\n") # 0.03  
+cat("RD2 Q-index (Assortativity):", q_index_rd2, "\n") # 0.03  
 
 
 ## Round 3 matrix
@@ -761,7 +761,7 @@ m1_rd3_g <- graph_from_adjacency_matrix(m1_rd3_df, mode = "undirected")
 
 # Calculate the Q-index
 q_index_rd3 <- assortativity_degree(m1_rd3_g)
-cat("Rural Q-index (Assortativity):", q_index_rd3, "\n") # 0.39
+cat("RD3 Q-index (Assortativity):", q_index_rd3, "\n") # 0.39
 
 ## Round 4 matrix
 df_rd4_temp <- rd4 %>%
@@ -796,7 +796,7 @@ m1_rd4_g <- graph_from_adjacency_matrix(m1_rd4_df, mode = "undirected")
 
 # Calculate the Q-index
 q_index_rd4 <- assortativity_degree(m1_rd4_g)
-cat("Rural Q-index (Assortativity):", q_index_rd4, "\n") # 0.19
+cat("RD4 Q-index (Assortativity):", q_index_rd4, "\n") # 0.19
 
 # get legend
 legend_m1 <- get_legend(m1_rd4 +
