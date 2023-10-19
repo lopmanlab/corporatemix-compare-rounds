@@ -1,5 +1,5 @@
 
-source("publication/pre_pandemic_matrix.R")
+source("../../publication/pre_pandemic_matrix.R")
 
 ## Source data by round
 # 

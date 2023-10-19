@@ -1,6 +1,6 @@
 ## Source data by round
 
-source("publication/pre_pandemic_matrix.R")
+source("../../publication/pre_pandemic_matrix.R")
 
 # df_rd4 <- readRDS("data/df_merged_rd4.RDS")
 

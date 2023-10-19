@@ -1,5 +1,4 @@
 source("publication/scripts/00c_model_functions.R")
-# source("publication/09_packages.R")
 
 ## Pre-pandemic data
 pre <- readRDS("publication/data/contact_usa.rds")

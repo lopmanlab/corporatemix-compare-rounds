@@ -1,5 +1,5 @@
 
-source("publication/scripts/02b_pre_pandemic_matrix.R")
+source("../../publication/scripts/02b_pre_pandemic_matrix.R")
 
 ## Source data by round
 
@@ -183,4 +183,4 @@ rd1_res_list <- list(all_changeR = eigen_scale_rd1,
                      work_changeR = work_changeR_rd1,
                      other_changeR = other_changeR_rd1)
 
-saveRDS(rd1_res_list, "data/model/rd1_res.RDS")
+saveRDS(rd1_res_list, "../../data/model/rd1_res.RDS")
