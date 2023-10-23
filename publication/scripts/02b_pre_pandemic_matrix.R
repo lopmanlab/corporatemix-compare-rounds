@@ -1,8 +1,8 @@
-source("publication/scripts/00c_model_functions.R")
+# source("../../publication/scripts/00c_model_functions.R")
 
 ## Pre-pandemic data
-pre <- readRDS("publication/data/contact_usa.rds")
-usapop <- read.csv("publication/data/usapop.csv")
+pre <- readRDS("../../publication/data/contact_usa.rds")
+usapop <- read.csv("../../publication/data/usapop.csv")
 
 ## US age distribution for original Prem matrix and Corporate Mix age structure
 usapop7 <- usapop %>% group_by(agegroup7) %>% summarise(n=sum(tot)) %>% .[[2]]
